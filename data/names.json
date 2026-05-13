@@ -1,0 +1,145 @@
+{
+  "tamil": {
+    "first_names": {
+      "Male": ["Ashwin", "Vijay", "Senthil", "Anirudh", "Karthikeyan", "Sivakumar", "Dinesh", "Prabhu", "Raghavan", "Manikandan", "Arul", "Gopinath", "Saravanan", "Aravind", "Balaji"],
+      "Female": ["Lakshmi", "Meena", "Kavya", "Divya", "Anitha", "Priya", "Adidhi", "Sangeetha", "Nithya", "Aishwarya", "Janani", "Keerthana", "Subha", "Gayathri", "Harini"]
+    },
+    "last_names": ["Pandiyan", "Hassan", "Krishnan", "Subramanian", "Iyer", "Pillai", "Ganesan", "Murugan", "Velan"]
+  },
+
+  "telugu": {
+    "first_names": {
+      "Male": ["Sai", "Teja", "Nikhil", "Charan", "Varun", "Tarun", "Vamsi", "Kiran", "Chaitanya", "Rohith", "Abhinav", "Sandeep", "Manoj"],
+      "Female": ["Sravani", "Tejaswi", "Harika", "Lahari", "Anusha", "Deepika", "Priya", "Keerthi", "Pooja", "Navya", "Sowmya", "Divya", "Niharika"]
+    },
+    "last_names": ["Reddy", "Naidu", "Rao", "Chowdary", "Goud", "Yadav", "Raju", "Varma", "Sharma", "Gupta"]
+  },
+
+  "kannada": {
+    "first_names": {
+      "Male": ["Rohit", "Darshan", "Puneeth", "Rakshit", "Yash", "Naveen", "Prakash", "Manjunath", "Shivraj", "Vijay", "Kiran"],
+      "Female": ["Aishwarya", "Deepa", "Pooja", "Shruthi", "Anitha", "Nandini", "Kavya", "Bhavana", "Rashmika", "Divya", "Soumya"]
+    },
+    "last_names": ["Gowda", "Shetty", "Hegde", "Rao", "Murthy", "Bhat", "Acharya"]
+  },
+
+  "malayali": {
+    "first_names": {
+      "Male": ["Arun", "Nivin", "Fahadh", "Dulquer", "Basil", "Sreenath", "Ajith", "Biju", "Jithin", "Rahul", "Manu"],
+      "Female": ["Anu", "Meera", "Lakshmi", "Devika", "Nithya", "Aswathy", "Athira", "Keerthana", "Arya", "Sneha", "Parvathy"]
+    },
+    "last_names": ["Nair", "Menon", "Pillai", "Kurup", "Varma", "Panicker"]
+  },
+
+  "marathi": {
+    "first_names": {
+      "Male": ["Aditya", "Rahul", "Sanjay", "Chinmay", "Swapnil", "Amol", "Sachin", "Nilesh", "Ajinkya", "Mahesh"],
+      "Female": ["Sneha", "Pooja", "Madhuri", "Vaishali", "Rutuja", "Anuja", "Kavita", "Shraddha", "Neha", "Prajakta"]
+    },
+    "last_names": ["Deshmukh", "Kulkarni", "Patil", "Pawar", "Shinde", "Jadhav", "Chavan", "Joshi"]
+  },
+
+  "gujarati": {
+    "first_names": {
+      "Male": ["Dhruv", "Meet", "Yash", "Jay", "Kunal", "Nirav", "Parth", "Dev", "Hitesh"],
+      "Female": ["Riya", "Khushi", "Heena", "Jinal", "Nisha", "Pooja", "Bhavika", "Kinjal", "Hetal", "Aarti"]
+    },
+    "last_names": ["Patel", "Shah", "Mehta", "Trivedi", "Joshi", "Desai", "Modi"]
+  },
+
+  "punjabi": {
+    "first_names": {
+      "Male": ["Gurpreet", "Manpreet", "Harjit", "Amrit", "Jaspreet", "Navdeep", "Baljeet", "Ranjit"],
+      "Female": ["Simran", "Jasleen", "Gurleen", "Manpreet", "Navjot", "Harleen", "Amrita", "Baljeet"]
+    },
+    "last_names": ["Singh", "Kaur", "Sandhu", "Gill", "Sidhu", "Dhillon"]
+  },
+
+  "bengali": {
+    "first_names": {
+      "Male": ["Sourav", "Anirban", "Ritwik", "Subhajit", "Arindam", "Debanjan", "Sayantan", "Kaushik"],
+      "Female": ["Mousumi", "Ananya", "Riya", "Swastika", "Debjani", "Sohini", "Rupali", "Ishita"]
+    },
+    "last_names": ["Banerjee", "Chatterjee", "Mukherjee", "Ghosh", "Bose", "Dutta", "Roy"]
+  },
+
+  "hindi_belt": {
+    "first_names": {
+      "Male": ["Aman", "Vikas", "Rohit", "Pankaj", "Deepak", "Sandeep", "Ankit", "Vivek", "Rajesh", "Mohit"],
+      "Female": ["Pooja", "Neha", "Kavita", "Anjali", "Ritu", "Sunita", "Shweta", "Komal", "Preeti", "Nidhi"]
+    },
+    "last_names": ["Sharma", "Verma", "Yadav", "Gupta", "Mishra", "Tiwari", "Pandey", "Singh"]
+  },
+
+
+  "south_indian": {
+    "first_names": {
+      "Male": [
+        "Karthik", "Arjun", "Surya", "Vikram", "Hari",
+        "Raghav", "Aditya", "Varun", "Siddharth", "Manoj",
+        "Naveen", "Srinivas", "Krishna", "Venkatesh", "Pranav",
+        "Tejas", "Rohit", "Shankar", "Gopal", "Madhav",
+        "Ajay", "Bharath", "Chaitanya", "Dinesh", "Ganesh",
+        "Jagadeesh", "Kiran", "Lokesh", "Murali",
+        "Naresh", "Prasad", "Ramesh", "Suresh", "Tarun",
+        "Uday", "Vijay", "Yogesh"
+      ],
+      "Female": [
+        "Lakshmi", "Anitha", "Divya", "Priya", "Nithya",
+        "Sowmya", "Keerthi", "Bhavya", "Harini", "Deepika",
+        "Pooja", "Shravya", "Meena", "Radha", "Sita",
+        "Kavya", "Swathi", "Anjali", "Sneha", "Gayatri",
+        "Padma", "Rukmini", "Sandhya", "Vaishnavi", "Aishwarya",
+        "Bhavana", "Chandrika", "Devi", "Hema", "Indira",
+        "Janaki", "Kalyani", "Latha", "Malathi", "Nirmala",
+        "Revathi", "Saraswati", "Tulasi", "Uma", "Vani"
+      ]
+    },
+    "last_names": [
+      "Iyer", "Iyengar", "Nair", "Menon", "Pillai",
+      "Rao", "Reddy", "Naidu", "Gowda", "Shetty",
+      "Hegde", "Bhat", "Pai", "Acharya", "Sharma",
+      "Varma", "Kurup", "Panicker", "Kumar", "Das"
+    ]
+  },
+
+  "west_indian": {
+    "first_names": {
+      "Male": ["Raj", "Kunal", "Aakash", "Ritesh"],
+      "Female": ["Riya", "Pooja", "Neha", "Aarti"]
+    },
+    "last_names": ["Patel", "Shah", "Mehta", "Desai"]
+  },
+
+  "north_indian": {
+    "first_names": {
+      "Male": ["Raj", "Amit", "Sunil", "Anil", "Rakesh"],
+      "Female": ["Neha", "Pooja", "Kiran", "Anjali", "Rekha"]
+    },
+    "last_names": ["Sharma", "Singh", "Gupta", "Agarwal"]
+  },
+
+  "central_indian": {
+    "first_names": {
+      "Male": ["Deepak", "Mukesh", "Ravi", "Shivam"],
+      "Female": ["Kiran", "Sunita", "Rekha", "Pooja"]
+    },
+    "last_names": ["Sahu", "Netam", "Markam", "Baghel"]
+  },
+
+  "east_indian": {
+    "first_names": {
+      "Male": ["Rajesh", "Suman", "Ajay", "Bijay", "Pradeep"],
+      "Female": ["Suman", "Rekha", "Anita", "Sunita", "Pooja"]
+    },
+    "last_names": ["Das", "Sahu", "Pradhan", "Behera"]
+  },
+
+  "northeast": {
+    "first_names": {
+      "Male": ["Tashi", "Rinchen", "Karma", "Dorjee"],
+      "Female": ["Deki", "Pema", "Choden", "Lhamo"]
+    },
+    "last_names": ["Lama", "Bhutia", "Lepcha"]
+  }
+}

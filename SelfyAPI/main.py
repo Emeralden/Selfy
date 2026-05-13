@@ -1,0 +1,43 @@
+from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+
+from SelfyAPI import database
+from SelfyAPI.cache import redis_client
+from SelfyAPI.dependencies import RedisDep
+from SelfyAPI.routers import life, social, school, character
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Connecting to Redis...")
+    await redis_client.ping()
+    yield
+    print("Disconnecting from Redis...")
+    await redis_client.aclose()
+
+
+app = FastAPI(title="Selfy",
+              lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def read_root():
+    return {"Hello": "Welcome to Selfy"}
+
+@app.get("/ping-redis")
+async def ping_redis(redis: RedisDep):
+    await redis.set("redis", "ready")
+    value = await redis.get("redis")
+    return {"redis": value}
+
+app.include_router(life.router, tags=["Lifecycle"])
+app.include_router(social.router, tags=["Social"])
+app.include_router(school.router, tags=["Education"])
+app.include_router(character.router, tags=["Character Data"])

@@ -1,0 +1,90 @@
+{
+  "IN": {
+    "regions": {
+      "north": ["Punjab", "Haryana", "Himachal Pradesh", "Uttarakhand", "Uttar Pradesh", "Delhi"],
+      "south": ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"],
+      "west": ["Maharashtra", "Gujarat", "Rajasthan", "Goa"],
+      "east": ["West Bengal", "Odisha", "Bihar", "Jharkhand"],
+      "central": ["Madhya Pradesh", "Chhattisgarh"],
+      "northeast": ["Assam", "Meghalaya", "Manipur", "Mizoram", "Nagaland", "Tripura", "Arunachal Pradesh", "Sikkim"]
+    },
+    "states": {
+      "Tamil Nadu": {
+        "cities": ["Chennai", "Coimbatore", "Vellore", "Madurai", "Thanjavur", "Pondicherry", "Erode", "Salem", "Thoothukudi", "Nagercoil"],
+        "tags": ["tamil", "south_indian"]
+      },
+      "Kerala": {
+        "cities": ["Kochi", "Thiruvananthapuram", "Calicut", "Palakkad", "Thrissur", "Kannur", "Alappuzha", "Guruvayur"],
+        "tags": ["malayali", "south_indian"]
+      },
+      "Karnataka": {
+        "cities": ["Bengaluru", "Mysuru", "Mangaluru", "Dhanbad", "Belagavi", "Udupi", "Kolar", "Hampi"],
+        "tags": ["kannada", "south_indian"]
+      },
+      "Andhra Pradesh": {
+        "cities": ["Anantapuram", "Visakhapatnam", "Vijayawada", "Kurnool", "Tirupati", "Kakinada", "Kadapa", "Srikakulam", "Nellore", "Ongole"],
+        "tags": ["telugu", "south_indian"]
+      },
+      "Telangana": {
+        "cities": ["Hyderabad", "Warangal", "Karimnagar", "Nizamabad", "Khammam", "Nalgonda", "Adilabad"],
+        "tags": ["telugu", "south_indian"]
+      },
+      "Maharashtra": {
+        "cities": ["Mumbai", "Pune", "Nagpur"],
+        "tags": ["marathi", "west_indian"]
+      },
+      "Gujarat": {
+        "cities": ["Ahmedabad", "Surat", "Vadodara"],
+        "tags": ["gujarati", "west_indian"]
+      },
+      "Rajasthan": {
+        "cities": ["Jaipur", "Udaipur", "Jodhpur"],
+        "tags": ["rajasthani", "north_indian"]
+      },
+      "Goa": {
+        "cities": ["Panaji", "Margao"],
+        "tags": ["konkani", "west_indian", "north_indian"]
+      },
+      "Punjab": {
+        "cities": ["Ludhiana", "Amritsar", "Chandigarh", "Ropar"],
+        "tags": ["punjabi", "north_indian"]
+      },
+      "Haryana": {
+        "cities": ["Gurgaon", "Faridabad", "Panipat"],
+        "tags": ["haryanvi", "north_indian"]
+      },
+      "Delhi": {
+        "cities": ["New Delhi"],
+        "tags": ["north_indian", "west_indian", "south_indian"]
+      },
+      "Uttar Pradesh": {
+        "cities": ["Lucknow", "Kanpur", "Varanasi"],
+        "tags": ["hindi_belt", "north_indian"]
+      },
+      "West Bengal": {
+        "cities": ["Kolkata", "Howrah", "Durgapur", "Kharagpur"],
+        "tags": ["bengali", "east_indian"]
+      },
+      "Bihar": {
+        "cities": ["Patna", "Gaya"],
+        "tags": ["bihari", "hindi_belt"]
+      },
+      "Odisha": {
+        "cities": ["Bhubaneswar", "Cuttack", "Puri"],
+        "tags": ["odia", "east_indian"]
+      },
+      "Madhya Pradesh": {
+        "cities": ["Bhopal", "Indore", "Gwalior"],
+        "tags": ["hindi_belt", "central_indian"]
+      },
+      "Chhattisgarh": {
+        "cities": ["Raipur", "Bilaspur", "Bhilai"],
+        "tags": ["chhattisgarhi", "central_indian"]
+      },
+      "Assam": {
+        "cities": ["Guwahati", "Dispur"],
+        "tags": ["assamese", "northeast"]
+      }
+    }
+  }
+}
