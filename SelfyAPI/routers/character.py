@@ -12,6 +12,13 @@ from ..models.event import LifeEvent
 
 router = APIRouter(prefix="/character")
 
+@router.get("/{char_id}", response_model=Character)
+async def get_char(char_id: uuid.UUID, session:SessionDep):
+    char = session.get(Character, char_id)
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found.")
+    return char
+
 @router.get("/{char_id}/events", response_model=List[LifeEvent])
 async def get_events(char_id: uuid.UUID, session: SessionDep):
     char = session.get(Character, char_id)

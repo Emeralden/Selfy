@@ -15,14 +15,10 @@ with open(GEO_PATH, 'r') as file:
 
 def generate_name(gender:str, country:str, state:str, family_name:str = None):
 
-    tags = GEOGRAPHY[country]["states"][state]["tags"]
-
-    firsts = []
-    lasts = []
-
-    for tag in tags:
-        firsts += NAMES[tag]["first_names"][gender]
-        lasts += NAMES[tag]["last_names"]
+    name_group = GEOGRAPHY[country]["states"][state]["name_group"]
+    print(name_group)
+    firsts = NAMES[name_group]["first_names"][gender]
+    lasts = NAMES[name_group]["last_names"]
     
     first_name = random.choice(firsts)
 

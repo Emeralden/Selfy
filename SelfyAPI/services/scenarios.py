@@ -64,14 +64,32 @@ def roll_event(char:Character):
 
 
 async def enrich_event(event:dict, tone:str, redis:RedisDep, bg_tasks:BackgroundTasks):
-    
+
     cache_key = f"event:{event['id']}:{tone}:v{event['version']}"
 
     cached_text = await redis.get(cache_key)
 
     if cached_text:
+        original_base = event["text_base"]
         event["text_base"] = cached_text
+        if random.random() < 0.2:
+            bg_tasks.add_task(
+                generate_flavor,
+                event["id"],
+                event["version"],
+                original_base,
+                tone,
+                redis
+            )
+
     else:
-        bg_tasks.add_task(generate_flavor, event["id"], event["version"], event["text_base"], tone, redis)
+        bg_tasks.add_task(
+            generate_flavor,
+            event["id"],
+            event["version"],
+            event["text_base"],
+            tone,
+            redis
+        )
 
     return event

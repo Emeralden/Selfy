@@ -1,89 +1,225 @@
 {
   "IN": {
     "regions": {
-      "north": ["Punjab", "Haryana", "Himachal Pradesh", "Uttarakhand", "Uttar Pradesh", "Delhi"],
-      "south": ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"],
-      "west": ["Maharashtra", "Gujarat", "Rajasthan", "Goa"],
-      "east": ["West Bengal", "Odisha", "Bihar", "Jharkhand"],
-      "central": ["Madhya Pradesh", "Chhattisgarh"],
-      "northeast": ["Assam", "Meghalaya", "Manipur", "Mizoram", "Nagaland", "Tripura", "Arunachal Pradesh", "Sikkim"]
+      "north": [
+        "Punjab",
+        "Haryana",
+        "Himachal Pradesh",
+        "Uttarakhand",
+        "Uttar Pradesh",
+        "Delhi"
+      ],
+      "south": [
+        "Tamil Nadu",
+        "Kerala",
+        "Karnataka",
+        "Andhra Pradesh",
+        "Telangana"
+      ],
+      "west": [
+        "Maharashtra",
+        "Gujarat",
+        "Rajasthan",
+        "Goa"
+      ],
+      "east": [
+        "West Bengal",
+        "Odisha",
+        "Bihar",
+        "Jharkhand"
+      ],
+      "central": [
+        "Madhya Pradesh",
+        "Chhattisgarh"
+      ],
+      "northeast": [
+        "Assam",
+        "Meghalaya",
+        "Manipur",
+        "Mizoram",
+        "Nagaland",
+        "Tripura",
+        "Arunachal Pradesh",
+        "Sikkim"
+      ]
     },
     "states": {
       "Tamil Nadu": {
-        "cities": ["Chennai", "Coimbatore", "Vellore", "Madurai", "Thanjavur", "Pondicherry", "Erode", "Salem", "Thoothukudi", "Nagercoil"],
-        "tags": ["tamil", "south_indian"]
+        "cities": [
+          "Chennai",
+          "Coimbatore",
+          "Vellore",
+          "Madurai",
+          "Thanjavur",
+          "Pondicherry",
+          "Erode",
+          "Salem",
+          "Thoothukudi",
+          "Nagercoil"
+        ],
+        "name_group": "tamil"
       },
       "Kerala": {
-        "cities": ["Kochi", "Thiruvananthapuram", "Calicut", "Palakkad", "Thrissur", "Kannur", "Alappuzha", "Guruvayur"],
-        "tags": ["malayali", "south_indian"]
+        "cities": [
+          "Kochi",
+          "Thiruvananthapuram",
+          "Calicut",
+          "Palakkad",
+          "Thrissur",
+          "Kannur",
+          "Alappuzha",
+          "Guruvayur"
+        ],
+        "name_group": "malayali"
       },
       "Karnataka": {
-        "cities": ["Bengaluru", "Mysuru", "Mangaluru", "Dhanbad", "Belagavi", "Udupi", "Kolar", "Hampi"],
-        "tags": ["kannada", "south_indian"]
+        "cities": [
+          "Bengaluru",
+          "Mysuru",
+          "Mangaluru",
+          "Dhanbad",
+          "Belagavi",
+          "Udupi",
+          "Kolar",
+          "Hampi"
+        ],
+        "name_group": "kannada"
       },
       "Andhra Pradesh": {
-        "cities": ["Anantapuram", "Visakhapatnam", "Vijayawada", "Kurnool", "Tirupati", "Kakinada", "Kadapa", "Srikakulam", "Nellore", "Ongole"],
-        "tags": ["telugu", "south_indian"]
+        "cities": [
+          "Anantapuram",
+          "Visakhapatnam",
+          "Vijayawada",
+          "Kurnool",
+          "Tirupati",
+          "Kakinada",
+          "Kadapa",
+          "Srikakulam",
+          "Nellore",
+          "Ongole"
+        ],
+        "name_group": "telugu"
       },
       "Telangana": {
-        "cities": ["Hyderabad", "Warangal", "Karimnagar", "Nizamabad", "Khammam", "Nalgonda", "Adilabad"],
-        "tags": ["telugu", "south_indian"]
+        "cities": [
+          "Hyderabad",
+          "Warangal",
+          "Karimnagar",
+          "Nizamabad",
+          "Khammam",
+          "Nalgonda",
+          "Adilabad"
+        ],
+        "name_group": "telugu"
       },
       "Maharashtra": {
-        "cities": ["Mumbai", "Pune", "Nagpur"],
-        "tags": ["marathi", "west_indian"]
+        "cities": [
+          "Mumbai",
+          "Pune",
+          "Nagpur"
+        ],
+        "name_group": "marathi"
       },
       "Gujarat": {
-        "cities": ["Ahmedabad", "Surat", "Vadodara"],
-        "tags": ["gujarati", "west_indian"]
+        "cities": [
+          "Ahmedabad",
+          "Surat",
+          "Vadodara"
+        ],
+        "name_group": "gujarati"
       },
       "Rajasthan": {
-        "cities": ["Jaipur", "Udaipur", "Jodhpur"],
-        "tags": ["rajasthani", "north_indian"]
+        "cities": [
+          "Jaipur",
+          "Udaipur",
+          "Jodhpur"
+        ],
+        "name_group": "north_indian"
       },
       "Goa": {
-        "cities": ["Panaji", "Margao"],
-        "tags": ["konkani", "west_indian", "north_indian"]
+        "cities": [
+          "Panaji",
+          "Margao"
+        ],
+        "name_group": "west_indian"
       },
       "Punjab": {
-        "cities": ["Ludhiana", "Amritsar", "Chandigarh", "Ropar"],
-        "tags": ["punjabi", "north_indian"]
+        "cities": [
+          "Ludhiana",
+          "Amritsar",
+          "Chandigarh",
+          "Ropar"
+        ],
+        "name_group": "punjabi"
       },
       "Haryana": {
-        "cities": ["Gurgaon", "Faridabad", "Panipat"],
-        "tags": ["haryanvi", "north_indian"]
+        "cities": [
+          "Gurgaon",
+          "Faridabad",
+          "Panipat"
+        ],
+        "name_group": "north_indian"
       },
       "Delhi": {
-        "cities": ["New Delhi"],
-        "tags": ["north_indian", "west_indian", "south_indian"]
+        "cities": [
+          "New Delhi"
+        ],
+        "name_group": "north_indian"
       },
       "Uttar Pradesh": {
-        "cities": ["Lucknow", "Kanpur", "Varanasi"],
-        "tags": ["hindi_belt", "north_indian"]
+        "cities": [
+          "Lucknow",
+          "Kanpur",
+          "Varanasi"
+        ],
+        "name_group": "hindi_belt"
       },
       "West Bengal": {
-        "cities": ["Kolkata", "Howrah", "Durgapur", "Kharagpur"],
-        "tags": ["bengali", "east_indian"]
+        "cities": [
+          "Kolkata",
+          "Howrah",
+          "Durgapur",
+          "Kharagpur"
+        ],
+        "name_group": "bengali"
       },
       "Bihar": {
-        "cities": ["Patna", "Gaya"],
-        "tags": ["bihari", "hindi_belt"]
+        "cities": [
+          "Patna",
+          "Gaya"
+        ],
+        "name_group": "east_indian"
       },
       "Odisha": {
-        "cities": ["Bhubaneswar", "Cuttack", "Puri"],
-        "tags": ["odia", "east_indian"]
+        "cities": [
+          "Bhubaneswar",
+          "Cuttack",
+          "Puri"
+        ],
+        "name_group": "east_indian"
       },
       "Madhya Pradesh": {
-        "cities": ["Bhopal", "Indore", "Gwalior"],
-        "tags": ["hindi_belt", "central_indian"]
+        "cities": [
+          "Bhopal",
+          "Indore",
+          "Gwalior"
+        ],
+        "name_group": "central_indian"
       },
       "Chhattisgarh": {
-        "cities": ["Raipur", "Bilaspur", "Bhilai"],
-        "tags": ["chhattisgarhi", "central_indian"]
+        "cities": [
+          "Raipur",
+          "Bilaspur",
+          "Bhilai"
+        ],
+        "name_group": "central_indian"
       },
       "Assam": {
-        "cities": ["Guwahati", "Dispur"],
-        "tags": ["assamese", "northeast"]
+        "cities": [
+          "Guwahati",
+          "Dispur"
+        ],
+        "name_group": "northeast"
       }
     }
   }

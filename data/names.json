@@ -71,38 +71,6 @@
     "last_names": ["Sharma", "Verma", "Yadav", "Gupta", "Mishra", "Tiwari", "Pandey", "Singh"]
   },
 
-
-  "south_indian": {
-    "first_names": {
-      "Male": [
-        "Karthik", "Arjun", "Surya", "Vikram", "Hari",
-        "Raghav", "Aditya", "Varun", "Siddharth", "Manoj",
-        "Naveen", "Srinivas", "Krishna", "Venkatesh", "Pranav",
-        "Tejas", "Rohit", "Shankar", "Gopal", "Madhav",
-        "Ajay", "Bharath", "Chaitanya", "Dinesh", "Ganesh",
-        "Jagadeesh", "Kiran", "Lokesh", "Murali",
-        "Naresh", "Prasad", "Ramesh", "Suresh", "Tarun",
-        "Uday", "Vijay", "Yogesh"
-      ],
-      "Female": [
-        "Lakshmi", "Anitha", "Divya", "Priya", "Nithya",
-        "Sowmya", "Keerthi", "Bhavya", "Harini", "Deepika",
-        "Pooja", "Shravya", "Meena", "Radha", "Sita",
-        "Kavya", "Swathi", "Anjali", "Sneha", "Gayatri",
-        "Padma", "Rukmini", "Sandhya", "Vaishnavi", "Aishwarya",
-        "Bhavana", "Chandrika", "Devi", "Hema", "Indira",
-        "Janaki", "Kalyani", "Latha", "Malathi", "Nirmala",
-        "Revathi", "Saraswati", "Tulasi", "Uma", "Vani"
-      ]
-    },
-    "last_names": [
-      "Iyer", "Iyengar", "Nair", "Menon", "Pillai",
-      "Rao", "Reddy", "Naidu", "Gowda", "Shetty",
-      "Hegde", "Bhat", "Pai", "Acharya", "Sharma",
-      "Varma", "Kurup", "Panicker", "Kumar", "Das"
-    ]
-  },
-
   "west_indian": {
     "first_names": {
       "Male": ["Raj", "Kunal", "Aakash", "Ritesh"],

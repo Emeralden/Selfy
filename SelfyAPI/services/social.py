@@ -86,9 +86,9 @@ def spawn_school_cohort(char: Character, session:SessionDep, num_kids:int):
 def purge_npcs(char:Character, session:SessionDep):
 
     query = select(NPC).where(
-        NPC.character_id == char.id,
+        NPC.char_id == char.id,
         NPC.role.in_(["classmate", "teacher"]),
-        NPC.is_signifant ==False
+        NPC.is_significant ==False
     )
 
     npcs = session.exec(query).all()
