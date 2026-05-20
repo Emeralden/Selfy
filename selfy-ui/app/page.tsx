@@ -1,49 +1,76 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+type LifeEvent = {
+  id: string;
+  age: number;
+  text: string;
+};
 
 export default function Page() {
 
-  const [character, setCharacter] = useState<any>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const CHAR_ID = "1cf00299-f2ef-4471-a4fd-51eb639919d7";
+  const queryClient = useQueryClient();
 
-  const ages = [...new Set(events.map((e: any) => e.age))].sort((a: any, b: any) => b - a);
-  const getEventsForAge = (targetAge: number) => events.filter((e: any) => e.age === targetAge);
-
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/character/7dcd447f-06f6-42f7-aa9d-52f7ecff09e6")
-    .then((res) => res.json())
-    .then((data) => {
-      setCharacter(data);
-    });
-
-    fetch("http://127.0.0.1:8000/character/7dcd447f-06f6-42f7-aa9d-52f7ecff09e6/events")
-    .then((res) => res.json())
-    .then((data) => {
-      setEvents(data);
+  const { data: character, isLoading: isCharacterLoading } = useQuery<any>({
+    queryKey: ['character', CHAR_ID],
+    queryFn: async () => {
+      const response = await fetch(`http://127.0.0.1:8000/character/${CHAR_ID}`);
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.json();
     }
-    );
-  }, []);
+  });
 
-  const handleAgeUp = async () => {
-    if (!character) return;
-
-    const response = await fetch(`http://127.0.0.1:8000/life/${character.id}/age_up`, {
-      method: "PATCH",
-    });
-
-    if (response.ok) {
-      const updatedChar = await response.json();
-
-      setCharacter(updatedChar);
-
-      const eventsResponse = await fetch(`http://127.0.0.1:8000/character/${character.id}/events`)
-
-      const updatedEvents = await eventsResponse.json();
-      setEvents(updatedEvents);
-    } else {
-      console.error("Failed to age up!");
+  const { data: events = [], isLoading: isEventsLoading } = useQuery<LifeEvent[]>({
+    queryKey: ['events', CHAR_ID],
+    queryFn: async () => {
+      const response = await fetch(`http://127.0.0.1:8000/character/${CHAR_ID}/events`);
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.json();
     }
+  });
+
+  const ages = useMemo(() => {
+    const timelineAges = new Set<number>(events.map((event) => event.age));
+    if (character) {
+      timelineAges.add(character.age);
+    }
+
+    return [...timelineAges].sort((a: number, b: number) => b - a);
+  }, [character, events]);
+
+  const getEventsForAge = (age: number) =>
+    events.filter((event) => event.age === age);
+
+  const ageUpMutation = useMutation({
+    mutationFn: async () => {
+      if (!character) throw new Error("Character has not loaded yet.");
+
+      const response = await fetch(`http://127.0.0.1:8000/life/${character.id}/age_up`, {
+        method: "PATCH",
+      });
+      if (!response.ok) throw new Error("Failed to age up!");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['character', CHAR_ID] });
+      queryClient.invalidateQueries({ queryKey: ['events', CHAR_ID] });
+    },
+  });
+
+  const handleAgeUp = () => {
+    ageUpMutation.mutate();
   };
+
+  if (isCharacterLoading || isEventsLoading || !character) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-background">
+        <h1 className="animate-pulse text-xl font-black text-primary">Loading Simulation...</h1>
+      </div>
+    );
+  }
+  
 
   return (
     <div className="flex h-dvh flex-col bg-background font-body text-on-surface overflow-hidden">
@@ -69,10 +96,10 @@ export default function Page() {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-extrabold leading-tight tracking-tight text-on-surface">
-                {character ? `${character.first_name} ${character.last_name}` : "Loading..."}
+                {`${character.first_name} ${character.last_name}`}
               </span>
               <span className="text-[10px] font-bold uppercase leading-tight tracking-wider text-on-surface-variant/70">
-                {character ? character.stage : "Loading..."}
+                {character.stage}
               </span>
             </div>
           </div>
@@ -81,7 +108,7 @@ export default function Page() {
             <div className="flex items-center gap-3 text-right">
               <div className="h-4 w-px bg-outline-variant" />
               <span className="text-xl font-black tracking-tight text-primary">
-                {character ? `₹${character.money}` : "₹0"}
+                {`₹${character.money}`}
               </span>
             </div>
           </div>
@@ -89,7 +116,7 @@ export default function Page() {
       </header>
 
       <main className="hide-scrollbar mx-auto w-full max-w-2xl flex-1 space-y-6 overflow-y-auto px-6 py-6">
-        {ages.map((age) => {
+        {ages.map((age: number) => {
           const isCurrent = age === character.age; 
           
           return (
@@ -107,7 +134,7 @@ export default function Page() {
                 </span>
               </div>
               <div className="ml-3 space-y-3 border-l-2 border-slate-100 pl-6">
-                {getEventsForAge(age).map((event) => (
+                {getEventsForAge(age).map((event: LifeEvent) => (
                   <div key={event.id} className="py-2">
                     
                     <div className="mb-1 flex items-center gap-2">
@@ -142,13 +169,13 @@ export default function Page() {
                     Joy
                   </span>
                   <span className="text-[9px] font-bold text-joy">
-                    {character ? `${character.joy}%` : "0%"}
+                    {`${character.joy}%`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full bg-joy shadow-[0_0_8px_rgba(255,107,0,0.4)]"
-                    style={{ width: character ? `${character.joy}%` : "0%" }}
+                    style={{ width: `${character.joy}%`}}
                   />
                 </div>
               </div>
@@ -164,13 +191,13 @@ export default function Page() {
                     Savvy
                   </span>
                   <span className="text-[9px] font-bold text-savvy">
-                    {character ? `${character.savvy}%` : "0%"}
+                    {`${character.savvy}%`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full bg-savvy shadow-[0_0_8px_rgba(0,200,0,0.4)]"
-                    style={{ width: character ? `${character.savvy}%` : "0%" }}
+                    style={{ width:`${character.savvy}%`}}
                   />
                 </div>
               </div>
@@ -186,13 +213,13 @@ export default function Page() {
                     Mind
                   </span>
                   <span className="text-[9px] font-bold text-mind">
-                    {character ? `${character.mind}%` : "0%"}
+                    {`${character.mind}%`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full bg-mind shadow-[0_0_8px_rgba(29,78,216,0.4)]"
-                    style={{ width: character ? `${character.mind}%` : "0%" }}
+                    style={{ width:`${character.mind}%`}}
                   />
                 </div>
               </div>
@@ -208,13 +235,13 @@ export default function Page() {
                     Appeal
                   </span>
                   <span className="text-[9px] font-bold text-appeal">
-                    {character ? `${character.appeal}%` : "0%"}
+                    {`${character.appeal}%`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full bg-appeal shadow-[0_0_8px_rgba(255,0,127,0.4)]"
-                    style={{ width: character ? `${character.appeal}%` : "0%" }}
+                    style={{ width:`${character.appeal}%`}}
                   />
                 </div>
               </div>
@@ -230,13 +257,13 @@ export default function Page() {
                     Body
                   </span>
                   <span className="text-[9px] font-bold text-body">
-                    {character ? `${character.body}%` : "0%"}
+                    {`${character.body}%`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full bg-body shadow-[0_0_8px_rgba(255,36,0,0.4)]"
-                    style={{ width: character ? `${character.body}%` : "0%" }}
+                    style={{ width:`${character.body}%`}}
                   />
                 </div>
               </div>
@@ -268,7 +295,7 @@ export default function Page() {
                 className="group flex h-28 w-full flex-col items-center justify-center gap-1 rounded-4xl bg-linear-to-b from-[#8B5CF6] to-primary px-4 text-white shadow-md transition-all duration-300 active:scale-[0.98]"
               >
                 <span className="text-xl font-black tracking-tight text-white"> 
-                  {character ? `Year ${character.age + 1}` : "..."}
+                  {`Year ${character.age + 1}`}
                 </span>
                 <span className="material-symbols-outlined text-2xl font-bold text-white transition-transform group-hover:translate-x-1">
                   arrow_forward

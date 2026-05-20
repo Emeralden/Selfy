@@ -10,7 +10,11 @@ from SelfyAPI.routers import life, social, school, character
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Connecting to Redis...")
-    await redis_client.ping()
+    try:
+        await redis_client.ping()
+        print("Connected to Redis")
+    except Exception as e:
+        print(f"Failed to connect to Redis: {e}")
     yield
     print("Disconnecting from Redis...")
     await redis_client.aclose()
