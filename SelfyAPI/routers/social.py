@@ -8,7 +8,7 @@ from SelfyAPI.services.actions import cooldowns, hang_out, request_money, talk_t
 from ..dependencies import RedisDep, SessionDep
 from ..models.character import ActionRequest, Character
 
-router = APIRouter(prefix="/school")
+router = APIRouter(prefix="/social")
 
 @router.post("/{char_id}/interact")
 async def interact(char_id:uuid.UUID, req:ActionRequest, session:SessionDep, redis:RedisDep):

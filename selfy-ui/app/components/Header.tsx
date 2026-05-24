@@ -1,0 +1,23 @@
+import Link from "next/link";
+
+export default function Header() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-slate-100/30 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
+        
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+          <span className="material-symbols-outlined text-[18px] text-slate-500">person</span>
+        </div>
+
+        <Link href="/">
+          <span className="brand-text inline-block text-primary antialiased">selfy</span>
+        </Link>
+
+        <div className="cursor-pointer text-primary transition-opacity hover:opacity-80">
+          <span className="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+        </div>
+
+      </div>
+    </header>
+  );
+}

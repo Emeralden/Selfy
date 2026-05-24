@@ -4,7 +4,7 @@ import random
 from SelfyAPI.dependencies import SessionDep
 from SelfyAPI.models.character import Character, Stage
 from SelfyAPI.models.npc import NPC
-from SelfyAPI.services.social import purge_npcs, relation_label, spawn_relatives, spawn_school_cohort
+from SelfyAPI.services.social import purge_npcs, relation_label, spawn_extended, spawn_school_cohort
 
 
 def stat_decay(char: Character):
@@ -83,7 +83,7 @@ def transition_stage(char:Character, session:SessionDep):
         }
     if char.age==5:
         spawn_school_cohort(char, session, 15)
-        spawn_relatives(char, session)
+        spawn_extended(char, session)
     if char.age==12:
         char.stage = Stage.HIGH_SCHOOL
         purge_npcs(char, session)

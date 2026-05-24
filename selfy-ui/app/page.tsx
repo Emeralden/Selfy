@@ -1,6 +1,8 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import Header from "./components/Header";
 
 type LifeEvent = {
   id: string;
@@ -66,54 +68,40 @@ export default function Page() {
   if (isCharacterLoading || isEventsLoading || !character) {
     return (
       <div className="flex h-dvh items-center justify-center bg-background">
-        <h1 className="animate-pulse text-xl font-black text-primary">Loading Simulation...</h1>
+        <h1 className="animate-pulse text-xl font-black text-primary">Loading...</h1>
       </div>
     );
   }
   
 
   return (
-    <div className="flex h-dvh flex-col bg-background font-body text-on-surface overflow-hidden">
-      <header className="w-full shrink-0 border-b border-outline-variant/30 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 pb-1 pt-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
-            <span className="material-symbols-outlined text-[18px] text-slate-500">person</span>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <Header/>
+
+      <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <span className="material-symbols-outlined text-xl text-primary">account_circle</span>
           </div>
-
-          <span className="brand-text inline-block text-primary antialiased">selfy</span>
-
-          <div className="flex items-center justify-center">
-            <span className="material-symbols-outlined text-[24px] text-primary">
-              account_balance_wallet
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold leading-tight tracking-tight text-on-surface">
+              {`${character.first_name} ${character.last_name}`}
+            </span>
+            <span className="text-[10px] font-bold uppercase leading-tight tracking-wider text-on-surface-variant/70">
+              {character.stage}
             </span>
           </div>
         </div>
 
-        <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <span className="material-symbols-outlined text-xl text-primary">account_circle</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-extrabold leading-tight tracking-tight text-on-surface">
-                {`${character.first_name} ${character.last_name}`}
-              </span>
-              <span className="text-[10px] font-bold uppercase leading-tight tracking-wider text-on-surface-variant/70">
-                {character.stage}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 text-right">
-              <div className="h-4 w-px bg-outline-variant" />
-              <span className="text-xl font-black tracking-tight text-primary">
-                {`₹${character.money}`}
-              </span>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 text-right">
+            <div className="h-4 w-px bg-outline-variant" />
+            <span className="text-xl font-black tracking-tight text-primary">
+              {`₹${character.money}`}
+            </span>
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="hide-scrollbar mx-auto w-full max-w-2xl flex-1 space-y-6 overflow-y-auto px-6 py-6">
         {ages.map((age: number) => {
@@ -129,9 +117,11 @@ export default function Page() {
                   </span>
                 </div>
                 
-                <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${isCurrent ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-on-surface-variant/70'}`}>
-                  {isCurrent ? "Current" : "Archived"}
-                </span>
+                {isCurrent && (
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+                    Current
+                  </span>
+                )}
               </div>
               <div className="ml-3 space-y-3 border-l-2 border-slate-100 pl-6">
                 {getEventsForAge(age).map((event: LifeEvent) => (
@@ -272,15 +262,18 @@ export default function Page() {
 
           <div className="flex h-36 gap-3 items-stretch">
             <div className="flex w-[30%] flex-col gap-2">
-              <button
-                type="button"
-                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-appeal/10 bg-linear-to-b from-appeal/5 to-white py-2 shadow-lg shadow-appeal/5 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined mb-0.5 text-xl text-appeal">group</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
-                  Social
-                </span>
-              </button>
+              <Link href="/social" className="flex">
+                <button
+                  type="button"
+                  className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-appeal/10 bg-linear-to-b from-appeal/5 to-white py-2 shadow-lg shadow-appeal/5 transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined mb-0.5 text-xl text-appeal">group</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                    Social
+                  </span>
+                </button>
+              </Link>
+              
 
               <button
                 type="button"

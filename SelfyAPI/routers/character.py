@@ -44,3 +44,12 @@ async def get_npcs(char_id: uuid.UUID, session: SessionDep):
     family = session.exec(query).all()
 
     return family
+
+@router.get("/{char_id}/npcs/{npc_id}", response_model=NPC)
+async def get_npc(char_id:uuid.UUID, npc_id: uuid.UUID, session: SessionDep):
+
+    query = select(NPC).where(NPC.char_id == char_id, NPC.id == npc_id)
+
+    npc = session.exec(query).first()
+
+    return npc

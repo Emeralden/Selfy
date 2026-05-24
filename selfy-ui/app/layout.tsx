@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import ActionPopup from "./components/ActionPopup";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,8 +44,11 @@ export default function RootLayout({
         />
       </head>
 
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Providers>{children}</Providers>
+      <body className="bg-background font-body text-on-surface antialiased">
+        <Providers>
+          <ActionPopup />
+          {children}
+        </Providers>
       </body>
     </html>
   );

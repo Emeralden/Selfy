@@ -44,4 +44,4 @@ async def ping_redis(redis: RedisDep):
 app.include_router(life.router, tags=["Lifecycle"])
 app.include_router(social.router, tags=["Social"])
 app.include_router(school.router, tags=["Education"])
-app.include_router(character.router, tags=["Character Data"])
+app.include_router(character.router, tags=["Character"])

@@ -62,3 +62,19 @@ body {
   z-index: -1;
   filter: blur(1px);
 }
+
+:root {
+  --intimacy-glow: rgba(219, 39, 119, 0.15);
+  --family-glow: rgba(13, 148, 136, 0.15);
+  --friends-glow: rgba(79, 70, 229, 0.15);
+  --extended-glow: rgba(234, 88, 12, 0.15);
+}
+
+.shadow-intimacy { box-shadow: 0 10px 30px -5px var(--intimacy-glow); }
+.shadow-family { box-shadow: 0 10px 30px -5px var(--family-glow); }
+.shadow-friends { box-shadow: 0 10px 30px -5px var(--friends-glow); }
+.shadow-extended { box-shadow: 0 10px 30px -5px var(--extended-glow); }
+
+.vignette-overlay {
+  background: radial-gradient(circle, transparent 20%, rgba(15, 23, 42, 0.4) 100%);
+}

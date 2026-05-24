@@ -19,7 +19,7 @@ def get_reputation(char:Character):
     return reputation
 
 
-def spawn_relatives(char:Character, session:SessionDep):
+def spawn_extended(char:Character, session:SessionDep):
     archetypes = [{"role": "Rival Cousin", 
                  "resentment": 30,
                  "temperament": 20,
