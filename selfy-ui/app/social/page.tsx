@@ -3,6 +3,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import { useQuery } from "@tanstack/react-query";
 import { useCharacterStore } from "../store/useCharacterStore";
+import { apiClient } from "@/lib/apiClient";
 
 interface NPC {
     id: string;
@@ -19,8 +20,8 @@ export default function Page() {
     const {data: npcs = [], isLoading} = useQuery<NPC[]>({
         queryKey : ["npcs", CHAR_ID],
         queryFn : async () => {
-            const res = await fetch(`https://selfy-yu0z.onrender.com/character/${CHAR_ID}/npcs`);
-            return res.json();
+            const res = await apiClient.get(`/character/${CHAR_ID}/npcs`);
+            return res.data;
         }
     });
 

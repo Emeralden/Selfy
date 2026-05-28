@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiClient } from "@/lib/apiClient";
 
 
 export default function Page() {
@@ -22,22 +23,11 @@ export default function Page() {
 
     const interactMutation = useMutation({
     mutationFn: async (actionSlug: string) => {
-      const response = await fetch(`https://selfy-yu0z.onrender.com/social/${CHAR_ID}/interact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: actionSlug,
-          npc_id: npcId,
-        }),
+      const res = await apiClient.post(`/social/${CHAR_ID}/interact`, {
+        action: actionSlug,
+        npc_id: npcId,
       });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        const errorMsg = Array.isArray(data.detail) ? data.detail[0].msg : (data.detail || "Action failed");
-        throw new Error(errorMsg);
-      }
-      return data; 
+      return res.data;
     },
     onSuccess: (data) => {
       showPopup(data.message || data); 
@@ -50,8 +40,8 @@ export default function Page() {
     const { data: npc, isLoading} = useQuery<any>({
     queryKey: ['npc', npcId],
     queryFn: async () => {
-      const res = await fetch(`https://selfy-yu0z.onrender.com/character/${CHAR_ID}/npcs/${npcId}`);
-      return res.json();
+      const res = await apiClient.get(`/character/${CHAR_ID}/npcs/${npcId}`);
+      return res.data;
     }
     });
 

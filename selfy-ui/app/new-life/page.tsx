@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import { genesisSchema, GenesisFormValues } from "../schemas/genesis";
 import { useCharacterStore } from "../store/useCharacterStore";
+import { apiClient } from "@/lib/apiClient";
 
 const COUNTRIES = [
   { code: "IN", label: "🇮🇳 India" },
@@ -60,9 +61,8 @@ export default function NewLifePage() {
     queryKey: ["states", selectedCountry],
     queryFn: async () => {
       if (!selectedCountry) return [];
-      const res = await fetch(`https://selfy-yu0z.onrender.com/life/states?country=${selectedCountry}`);
-      if (!res.ok) return [];
-      return res.json();
+      const res = await apiClient.get(`/life/states?country=${selectedCountry}`);
+      return res.data;
     },
     enabled: !!selectedCountry,
   });
@@ -81,10 +81,8 @@ export default function NewLifePage() {
         state:   selectedState,
         gender:  selectedGender ?? "Male",
       });
-      const res = await fetch(`https://selfy-yu0z.onrender.com/life/generate-name?${params}`);
-      if (!res.ok) throw new Error();
-
-      const { first_name, last_name } = await res.json();
+      const res = await apiClient.get(`/life/generate-name?${params}`);
+      const { first_name, last_name } = res.data;
       setValue("first_name", first_name, { shouldValidate: true });
       setValue("last_name",  last_name,  { shouldValidate: true });
     } catch {
@@ -99,17 +97,9 @@ export default function NewLifePage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const payload = {
-        user_id: "00000000-0000-0000-0000-000000000001",
-        ...data,
-      };
-      const response = await fetch("https://selfy-yu0z.onrender.com/life/birth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error("Birth failed! Backend said no.");
-      const char = await response.json();
+      const res = await apiClient.post("/life/birth", data);
+      const char = res.data;
+      useCharacterStore.getState().setJustBorn();
       setCharId(char.id);
       router.push("/");
     } catch (e: unknown) {
