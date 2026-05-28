@@ -1,9 +1,9 @@
-import redis.asyncio as redis
+from upstash_redis.asyncio import Redis
 from .config import settings
 
-redis_client = redis.from_url(
-    settings.redis_url,
-    decode_responses=True
+redis_client = Redis(
+    url=settings.redis_url,
+    token=settings.redis_token
 )
 
 async def get_redis():

@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from redis import Redis
+from upstash_redis.asyncio import Redis
 import sqlmodel
 
 from SelfyAPI.cache import get_redis

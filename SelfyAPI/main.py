@@ -16,8 +16,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Failed to connect to Redis: {e}")
     yield
-    print("Disconnecting from Redis...")
-    await redis_client.aclose()
 
 
 app = FastAPI(title="Selfy",
@@ -26,8 +24,7 @@ app = FastAPI(title="Selfy",
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
+        "selfy-web.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],

@@ -8,6 +8,6 @@ PyJWT
 python-multipart
 psycopg2-binary
 asyncpg
-redis
+upstash-redis
 google-genai
 alembic
