@@ -19,7 +19,7 @@ export default function Page() {
     const {data: npcs = [], isLoading} = useQuery<NPC[]>({
         queryKey : ["npcs", CHAR_ID],
         queryFn : async () => {
-            const res = await fetch(`http://127.0.0.1:8000/character/${CHAR_ID}/npcs`);
+            const res = await fetch(`https://selfy-yu0z.onrender.com/character/${CHAR_ID}/npcs`);
             return res.json();
         }
     });

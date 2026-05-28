@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const apiClient = axios.create({
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://selfy-yu0z.onrender.com',
   withCredentials: true,
 });
 

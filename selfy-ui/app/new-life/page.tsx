@@ -60,7 +60,7 @@ export default function NewLifePage() {
     queryKey: ["states", selectedCountry],
     queryFn: async () => {
       if (!selectedCountry) return [];
-      const res = await fetch(`http://127.0.0.1:8000/life/states?country=${selectedCountry}`);
+      const res = await fetch(`https://selfy-yu0z.onrender.com/life/states?country=${selectedCountry}`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -81,7 +81,7 @@ export default function NewLifePage() {
         state:   selectedState,
         gender:  selectedGender ?? "Male",
       });
-      const res = await fetch(`http://127.0.0.1:8000/life/generate-name?${params}`);
+      const res = await fetch(`https://selfy-yu0z.onrender.com/life/generate-name?${params}`);
       if (!res.ok) throw new Error();
 
       const { first_name, last_name } = await res.json();
@@ -103,7 +103,7 @@ export default function NewLifePage() {
         user_id: "00000000-0000-0000-0000-000000000001",
         ...data,
       };
-      const response = await fetch("http://127.0.0.1:8000/life/birth", {
+      const response = await fetch("https://selfy-yu0z.onrender.com/life/birth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

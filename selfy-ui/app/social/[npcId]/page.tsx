@@ -22,7 +22,7 @@ export default function Page() {
 
     const interactMutation = useMutation({
     mutationFn: async (actionSlug: string) => {
-      const response = await fetch(`http://127.0.0.1:8000/social/${CHAR_ID}/interact`, {
+      const response = await fetch(`https://selfy-yu0z.onrender.com/social/${CHAR_ID}/interact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -50,7 +50,7 @@ export default function Page() {
     const { data: npc, isLoading} = useQuery<any>({
     queryKey: ['npc', npcId],
     queryFn: async () => {
-      const res = await fetch(`http://127.0.0.1:8000/character/${CHAR_ID}/npcs/${npcId}`);
+      const res = await fetch(`https://selfy-yu0z.onrender.com/character/${CHAR_ID}/npcs/${npcId}`);
       return res.json();
     }
     });
