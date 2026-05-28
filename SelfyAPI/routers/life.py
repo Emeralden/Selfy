@@ -6,7 +6,7 @@ from sqlmodel import col, select
 
 from SelfyAPI.models.npc import NPC
 from SelfyAPI.services.aging import calculate_grades, relationship_decay, roll_reaper, stat_decay, transition_stage
-from SelfyAPI.services.naming import generate_name, get_states
+from SelfyAPI.services.naming import generate_name as svc_generate_name, get_states as svc_get_states
 from SelfyAPI.services.scenarios import enrich_event, roll_event
 
 from ..dependencies import RedisDep, SessionDep, UserDep
@@ -16,16 +16,16 @@ from ..models.event import LifeEvent
 router = APIRouter(prefix="/life")
 
 @router.get("/states")
-async def get_states(country: str):
-    states = get_states(country)
+async def get_states_route(country: str):
+    states = svc_get_states(country)
     if not states:
         raise HTTPException(status_code=404, detail=f"No states found for country: {country}")
     return states
 
 @router.get("/generate-name")
-async def generate_name(gender: str, country: str, state: str):
+async def generate_name_route(gender: str, country: str, state: str):
     try:
-        first_name, last_name = generate_name(gender, country, state)
+        first_name, last_name = svc_generate_name(gender, country, state)
         return {"first_name": first_name, "last_name": last_name}
     except KeyError:
         raise HTTPException(status_code=400, detail=f"No name data for {country}/{state}")
@@ -41,7 +41,7 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user:Us
 
     family_name = new_char.last_name
 
-    dad_first_name, _ = generate_name("Male", country, state)
+    dad_first_name, _ = svc_generate_name("Male", country, state)
     dad = NPC(
         first_name=dad_first_name,
         last_name=family_name,
@@ -52,7 +52,7 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user:Us
         is_significant=True
     )
 
-    mom_first_name, _ = generate_name("Female", country, state)
+    mom_first_name, _ = svc_generate_name("Female", country, state)
     mom = NPC(
         first_name=mom_first_name,
         last_name=family_name,
@@ -131,5 +131,4 @@ async def age_up(char_id: uuid.UUID, session: SessionDep, redis:RedisDep, bg_tas
     await redis.delete(f"cooldowns:{char_id}")
 
     return char
-
 
