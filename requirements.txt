@@ -1,15 +1,11 @@
 fastapi
 uvicorn[standard]
-SQLAlchemy
 SQLModel
-databases[sqlite]
-python-dotenv
 pydantic-settings
 pydantic[email]
-passlib[argon2]
-python-jose[cryptography]
+argon2-cffi
+PyJWT
 python-multipart
-rich
 psycopg2-binary
 asyncpg
 redis
