@@ -18,6 +18,8 @@ else:
 engine = sqlmodel.create_engine(
     settings.database_url,
     connect_args=connect_args,
+    pool_pre_ping=not is_sqlite,
+    pool_recycle=1800 if not is_sqlite else -1,
 )
 
 def create_db_and_tables():
