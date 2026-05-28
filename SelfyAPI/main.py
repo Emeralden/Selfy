@@ -9,6 +9,7 @@ from SelfyAPI.routers import auth, life, social, school, character
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    database.create_db_and_tables()
     print("Connecting to Redis...")
     try:
         await redis_client.ping()
@@ -24,7 +25,7 @@ app = FastAPI(title="Selfy",
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "selfy-web.vercel.app",
+        "https://selfy-web.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
