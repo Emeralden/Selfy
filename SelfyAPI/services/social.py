@@ -79,6 +79,8 @@ def spawn_school_cohort(char: Character, session:SessionDep, num_kids:int):
         char_id=char.id,
         )
     
+    session.add(teacher)
+
     session.commit()
     return
 

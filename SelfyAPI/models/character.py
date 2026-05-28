@@ -29,7 +29,7 @@ class Stage(str, Enum):
     ELDER = "Elder"
 
 class CharacterCreate(SQLModel):
-    user_id: uuid.UUID
+    user_id: uuid.UUID | None = None
     first_name: str
     last_name: str
     country: str

@@ -72,6 +72,7 @@ export default function RegisterPage() {
       const res = await fetch("https://selfy-yu0z.onrender.com/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           username: data.username,
           password: data.password,

@@ -99,7 +99,6 @@ export default function NewLifePage() {
     try {
       const res = await apiClient.post("/life/birth", data);
       const char = res.data;
-      useCharacterStore.getState().setJustBorn();
       setCharId(char.id);
       router.push("/");
     } catch (e: unknown) {
