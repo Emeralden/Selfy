@@ -1,6 +1,7 @@
 "use client";
 import ActionPopup from "@/app/components/ActionPopup";
 import Header from "@/app/components/Header";
+import { useCharacterStore } from "@/app/store/useCharacterStore";
 import { usePopupStore } from "@/app/store/usePopupStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -14,7 +15,7 @@ export default function Page() {
     const queryClient = useQueryClient();
 
     const params = useParams()
-    const CHAR_ID = "1cf00299-f2ef-4471-a4fd-51eb639919d7";
+    const CHAR_ID = useCharacterStore((s) => s.charId) ?? "";
     const npcId = params.npcId
 
     const { showPopup } = usePopupStore();

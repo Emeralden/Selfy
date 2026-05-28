@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     redis_url: str
     secret_key: str
     gemini_api_key: str
-    env_state: str = "dev"
+    env_state: str = "prod"
 
     class Config:
         env_file = ".env"

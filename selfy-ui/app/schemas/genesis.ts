@@ -1,5 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export const genesisSchema = z.object({
@@ -11,15 +9,3 @@ export const genesisSchema = z.object({
 });
 
 export type GenesisFormValues = z.infer<typeof genesisSchema>;
-
-const { register, handleSubmit, setValue } = useForm<GenesisFormValues>({
-  resolver: zodResolver(genesisSchema)
-});
-
-const handleDiceClick = async () => {
-  const randomFirst = "Michael"; 
-  const randomLast = "Jackson";
-
-  setValue("first_name", randomFirst);
-  setValue("last_name", randomLast);
-};

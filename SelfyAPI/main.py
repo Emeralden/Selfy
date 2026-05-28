@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from SelfyAPI import database
 from SelfyAPI.cache import redis_client
 from SelfyAPI.dependencies import RedisDep
-from SelfyAPI.routers import life, social, school, character
+from SelfyAPI.routers import auth, life, social, school, character
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,7 +25,10 @@ app = FastAPI(title="Selfy",
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,3 +48,4 @@ app.include_router(life.router, tags=["Lifecycle"])
 app.include_router(social.router, tags=["Social"])
 app.include_router(school.router, tags=["Education"])
 app.include_router(character.router, tags=["Character"])
+app.include_router(auth.router, tags=["Security"])

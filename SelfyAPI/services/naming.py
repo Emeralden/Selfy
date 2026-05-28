@@ -28,3 +28,8 @@ def generate_name(gender:str, country:str, state:str, family_name:str = None):
         last_name = family_name
 
     return first_name, last_name
+
+def get_states(country: str) -> list[str]:
+    if country not in GEOGRAPHY:
+        return []
+    return sorted(GEOGRAPHY[country]["states"].keys())

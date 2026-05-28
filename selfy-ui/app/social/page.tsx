@@ -2,6 +2,7 @@
 import Link from "next/link";
 import Header from "../components/Header";
 import { useQuery } from "@tanstack/react-query";
+import { useCharacterStore } from "../store/useCharacterStore";
 
 interface NPC {
     id: string;
@@ -13,7 +14,7 @@ interface NPC {
 
 export default function Page() {
 
-    const CHAR_ID = "1cf00299-f2ef-4471-a4fd-51eb639919d7";
+    const CHAR_ID = useCharacterStore((s) => s.charId) ?? "";
 
     const {data: npcs = [], isLoading} = useQuery<NPC[]>({
         queryKey : ["npcs", CHAR_ID],

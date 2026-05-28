@@ -30,18 +30,21 @@ class Stage(str, Enum):
 
 class CharacterCreate(SQLModel):
     user_id: uuid.UUID
+    first_name: str
+    last_name: str
     country: str
+    state: str
     gender: Gender
 
 class Character(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="user.id", index=True)
 
-    first_name: str = Field(default="Ganesh")
-    last_name: str = Field(default="Maharaj")
+    first_name: str
+    last_name: str
     gender: Gender
-    country: str = Field(default="IN")
-    state: str = Field(default="Kerala")
+    country: str
+    state: str
     age: int = Field(default=0)
     stage: Stage = Field(default=Stage.NEWBORN)
     alive: bool = Field(default=True)
@@ -75,6 +78,8 @@ class Character(SQLModel, table=True):
     )
 
     contextual: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+
+    avatar_dna: dict = Field(default={}, sa_column=Column(JSON))
 
     class Config:
         from_attributes = True

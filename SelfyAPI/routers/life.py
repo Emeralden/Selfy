@@ -6,23 +6,42 @@ from sqlmodel import col, select
 
 from SelfyAPI.models.npc import NPC
 from SelfyAPI.services.aging import calculate_grades, relationship_decay, roll_reaper, stat_decay, transition_stage
-from SelfyAPI.services.naming import generate_name
+from SelfyAPI.services.naming import generate_name, get_states
 from SelfyAPI.services.scenarios import enrich_event, roll_event
 
-from ..dependencies import RedisDep, SessionDep
+from ..dependencies import RedisDep, SessionDep, UserDep
 from ..models.character import Character, CharacterCreate, Gender, Stage
 from ..models.event import LifeEvent
 
 router = APIRouter(prefix="/life")
 
+@router.get("/states")
+async def get_states(country: str):
+    states = get_states(country)
+    if not states:
+        raise HTTPException(status_code=404, detail=f"No states found for country: {country}")
+    return states
+
+@router.get("/generate-name")
+async def generate_name(gender: str, country: str, state: str):
+    try:
+        first_name, last_name = generate_name(gender, country, state)
+        return {"first_name": first_name, "last_name": last_name}
+    except KeyError:
+        raise HTTPException(status_code=400, detail=f"No name data for {country}/{state}")
+
+
 @router.post("/birth", response_model=Character)
-async def birth_character(char_in: CharacterCreate, session: SessionDep):
+async def birth_character(char_in: CharacterCreate, session: SessionDep, user:UserDep):
 
     new_char = Character(**char_in.model_dump())
+    new_char.user_id = user.id
     country = new_char.country
     state = new_char.state
 
-    dad_first_name, family_name = generate_name("Male", country, state)
+    family_name = new_char.last_name
+
+    dad_first_name, _ = generate_name("Male", country, state)
     dad = NPC(
         first_name=dad_first_name,
         last_name=family_name,
@@ -44,10 +63,6 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep):
         is_significant=True
     )
 
-    first_name, _ = generate_name(new_char.gender, country, state)
-    new_char.first_name = first_name
-    new_char.last_name = family_name
-
     session.add(new_char)
     session.commit()
     session.refresh(new_char)
@@ -63,6 +78,10 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep):
     session.add(first_memory)
     session.commit()
     session.refresh(new_char)
+
+    user.active_character_id = new_char.id
+    session.add(user)
+    session.commit()
 
     return new_char
 

@@ -4,6 +4,10 @@ from sqlmodel import SQLModel, Field
 import uuid
 from typing import Optional
 
+class UserCreate(SQLModel):
+    username: str
+    password: str
+
 class User(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     username: str = Field(index=True, unique=True)

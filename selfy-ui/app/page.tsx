@@ -1,8 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import Header from "./components/Header";
+import { useCharacterStore } from "./store/useCharacterStore";
+import { apiClient } from "@/lib/apiClient";
+
 
 type LifeEvent = {
   id: string;
@@ -11,26 +14,38 @@ type LifeEvent = {
 };
 
 export default function Page() {
+  const queryClient   = useQueryClient();
+  const charId        = useCharacterStore((s) => s.charId);
 
-  const CHAR_ID = "1cf00299-f2ef-4471-a4fd-51eb639919d7";
-  const queryClient = useQueryClient();
+  const justBorn      = useCharacterStore((s) => s.justBorn);
+  const clearJustBorn = useCharacterStore((s) => s.clearJustBorn);
+
+  useEffect(() => {
+    if (justBorn) {
+      new Audio("/sounds/baby-cry.mp3").play().catch(() => {});
+      clearJustBorn();
+    }
+  }, [justBorn, clearJustBorn]);
+
+  const authUser = queryClient.getQueryData<{ active_character_id: string | null }>(["authMe"]);
+  const CHAR_ID  = charId ?? authUser?.active_character_id ?? "";
 
   const { data: character, isLoading: isCharacterLoading } = useQuery<any>({
     queryKey: ['character', CHAR_ID],
     queryFn: async () => {
-      const response = await fetch(`http://127.0.0.1:8000/character/${CHAR_ID}`);
-      if (!response.ok) throw new Error('Network response was not ok');
-      return response.json();
-    }
+      const res = await apiClient.get(`/character/${CHAR_ID}`);
+      return res.data;
+    },
+    enabled: !!CHAR_ID,
   });
 
   const { data: events = [], isLoading: isEventsLoading } = useQuery<LifeEvent[]>({
     queryKey: ['events', CHAR_ID],
     queryFn: async () => {
-      const response = await fetch(`http://127.0.0.1:8000/character/${CHAR_ID}/events`);
-      if (!response.ok) throw new Error('Network response was not ok');
-      return response.json();
-    }
+      const res = await apiClient.get(`/character/${CHAR_ID}/events`);
+      return res.data;
+    },
+    enabled: !!CHAR_ID,
   });
 
   const ages = useMemo(() => {
@@ -48,12 +63,8 @@ export default function Page() {
   const ageUpMutation = useMutation({
     mutationFn: async () => {
       if (!character) throw new Error("Character has not loaded yet.");
-
-      const response = await fetch(`http://127.0.0.1:8000/life/${character.id}/age_up`, {
-        method: "PATCH",
-      });
-      if (!response.ok) throw new Error("Failed to age up!");
-      return response.json();
+      const res = await apiClient.patch(`/life/${character.id}/age_up`);
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['character', CHAR_ID] });
