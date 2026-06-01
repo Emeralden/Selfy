@@ -273,7 +273,17 @@ export default function Page() {
 
           <div className="flex h-36 gap-3 items-stretch">
             <div className="flex w-[30%] flex-col gap-2">
-              <Link href="/social" className="flex">
+              <button
+                type="button"
+                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-joy/10 bg-linear-to-b from-joy/5 to-white py-2 shadow-lg shadow-joy/5 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined mb-0.5 text-xl text-joy">favorite</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                  Self
+                </span>
+              </button>
+
+              <Link href="/social" className="flex flex-1">
                 <button
                   type="button"
                   className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-appeal/10 bg-linear-to-b from-appeal/5 to-white py-2 shadow-lg shadow-appeal/5 transition-all active:scale-95"
@@ -284,12 +294,6 @@ export default function Page() {
                   </span>
                 </button>
               </Link>
-              
-
-              <button
-                type="button"
-                className="flex-1 rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 transition-all active:scale-95"
-              />
             </div>
 
             <div className="flex h-full grow items-center justify-center">
@@ -298,7 +302,7 @@ export default function Page() {
                 onClick={handleAgeUp}
                 className="group flex h-28 w-full flex-col items-center justify-center gap-1 rounded-4xl bg-linear-to-b from-[#8B5CF6] to-primary px-4 text-white shadow-md transition-all duration-300 active:scale-[0.98]"
               >
-                <span className="text-xl font-black tracking-tight text-white"> 
+                <span className="text-xl font-black tracking-tight text-white">
                   {`Year ${character.age + 1}`}
                 </span>
                 <span className="material-symbols-outlined text-2xl font-bold text-white transition-transform group-hover:translate-x-1">
@@ -310,12 +314,23 @@ export default function Page() {
             <div className="flex w-[30%] flex-col gap-2">
               <button
                 type="button"
-                className="flex-1 rounded-2xl border border-joy/10 bg-linear-to-b from-joy/5 to-white py-2 transition-all active:scale-95"
-              />
+                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined mb-0.5 text-xl text-savvy">trending_up</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                  Path
+                </span>
+              </button>
+
               <button
                 type="button"
-                className="flex-1 rounded-2xl border border-mind/10 bg-linear-to-b from-mind/5 to-white py-2 transition-all active:scale-95"
-              />
+                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-mind/10 bg-linear-to-b from-mind/5 to-white py-2 shadow-lg shadow-mind/5 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined mb-0.5 text-xl text-mind">casino</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                  Lifestyle
+                </span>
+              </button>
             </div>
           </div>
         </div>
