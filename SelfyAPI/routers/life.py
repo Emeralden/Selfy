@@ -6,6 +6,7 @@ from sqlmodel import col, select
 
 from SelfyAPI.models.npc import NPC
 from SelfyAPI.services.aging import calculate_grades, relationship_decay, roll_reaper, stat_decay, transition_stage
+from SelfyAPI.services.director import generate_eulogy, embed_and_save
 from SelfyAPI.services.naming import generate_name as svc_generate_name, get_states as svc_get_states
 from SelfyAPI.services.scenarios import enrich_event, roll_event
 
@@ -32,7 +33,7 @@ async def generate_name_route(gender: str, country: str, state: str):
 
 
 @router.post("/birth", response_model=Character)
-async def birth_character(char_in: CharacterCreate, session: SessionDep, user:UserDep):
+async def birth_character(char_in: CharacterCreate, session: SessionDep, user: UserDep, bg_tasks: BackgroundTasks):
 
     new_char = Character(**char_in.model_dump())
     new_char.user_id = user.id
@@ -78,6 +79,7 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user:Us
     session.add(first_memory)
     session.commit()
     session.refresh(new_char)
+    bg_tasks.add_task(embed_and_save, first_memory.id)
 
     user.active_character_id = new_char.id
     session.add(user)
@@ -112,17 +114,26 @@ async def age_up(char_id: uuid.UUID, session: SessionDep, redis:RedisDep, bg_tas
         char_id=char.id, age=char.age, text=(f"I am now {char.age} years old.")
     )
 
-    raw_event = roll_event(char)
-    if raw_event:
-        rich_event = await enrich_event(raw_event, "same as original", redis, bg_tasks)
-        event_log = LifeEvent(
-            char_id=char.id, age=char.age, text=rich_event["text_base"]
-        )
-        session.add(event_log)
+    if char.alive:
+        raw_event = roll_event(char)
+        if raw_event:
+            rich_event = await enrich_event(raw_event, "same as original", redis, bg_tasks)
+            event_log = LifeEvent(
+                char_id=char.id, age=char.age, text=rich_event["text_base"]
+            )
+            session.add(event_log)
+            bg_tasks.add_task(embed_and_save, event_log.id)
+    else:
+        eulogy_text = await generate_eulogy(char.id, f"{char.first_name} {char.last_name}", char.age, session)
+        
+        final_event = LifeEvent(char_id=char.id, age=char.age, text=eulogy_text)
+        session.add(final_event)
+        bg_tasks.add_task(embed_and_save, final_event.id)
 
     session.add(age_memory)
     session.add(char)
     session.commit()
+    bg_tasks.add_task(embed_and_save, age_memory.id)
 
     session.refresh(char)
 

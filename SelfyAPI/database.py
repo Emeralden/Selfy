@@ -6,20 +6,10 @@ from .models.character import Character
 from .models.event import LifeEvent
 from .models.npc import NPC
 
-is_sqlite = settings.database_url.startswith("sqlite")
-
-connect_args = {"check_same_thread": False} if is_sqlite else {}
-
-if is_sqlite:
-    print("Running in SQLite Mode")
-else:
-    print("Running in PostgreSQL Mode.")
-
 engine = sqlmodel.create_engine(
     settings.database_url,
-    connect_args=connect_args,
-    pool_pre_ping=not is_sqlite,
-    pool_recycle=1800 if not is_sqlite else -1,
+    pool_pre_ping=True,
+    pool_recycle=1800,
 )
 
 def create_db_and_tables():

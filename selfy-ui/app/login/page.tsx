@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { z } from "zod";
+import { apiClient } from "@/lib/apiClient";
 
 
 const loginSchema = z.object({
@@ -58,23 +59,15 @@ export default function LoginPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("https://selfy-yu0z.onrender.com/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          username: data.username,
-          password: data.password,
-        }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail ?? "Login failed");
-      }
+      await apiClient.post(
+        "/auth/login",
+        new URLSearchParams({ username: data.username, password: data.password }),
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      );
       router.push("/new-life");
-
     } catch (e: unknown) {
-      setSubmitError(e instanceof Error ? e.message : "Something went wrong.");
+      const detail = (e as any)?.response?.data?.detail;
+      setSubmitError(detail ?? (e instanceof Error ? e.message : "Something went wrong."));
     } finally {
       setIsSubmitting(false);
     }

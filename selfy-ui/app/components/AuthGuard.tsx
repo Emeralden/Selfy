@@ -5,13 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const PUBLIC_ROUTES = ["/login", "/register"];
+const PUBLIC_ROUTES = ["/login", "/register", "/death"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router     = useRouter();
-  const pathname   = usePathname();
-  const setCharId  = useCharacterStore((s) => s.setCharId);
-  const isPublic   = PUBLIC_ROUTES.includes(pathname);
+  const router    = useRouter();
+  const pathname  = usePathname();
+  const setCharId = useCharacterStore((s) => s.setCharId);
+  const charId    = useCharacterStore((s) => s.charId);
+  const isPublic  = PUBLIC_ROUTES.includes(pathname);
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["authMe"],
@@ -21,6 +22,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     },
     retry: false,
     enabled: !isPublic,
+  });
+
+  // Fetch character to check the alive flag
+  const activeCharId = charId ?? user?.active_character_id;
+  const { data: character } = useQuery<any>({
+    queryKey: ["character", activeCharId],
+    queryFn: async () => (await apiClient.get(`/character/${activeCharId}`)).data,
+    enabled: !!activeCharId && !isPublic,
   });
 
   useEffect(() => {
@@ -35,11 +44,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (user.active_character_id) {
       setCharId(user.active_character_id);
-      if (pathname === "/new-life") router.push("/");
+
+      // Dead? Only /death and /new-life are allowed 💀
+      if (character && character.alive === false && pathname !== "/death" && pathname !== "/new-life") {
+        router.push("/death");
+        return;
+      }
+
+      if (pathname === "/new-life" && character?.alive !== false) router.push("/");
     } else {
       if (pathname !== "/new-life") router.push("/new-life");
     }
-  }, [user, isLoading, isError, isPublic, pathname, router, setCharId]);
+  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character]);
 
   if (isPublic) return <>{children}</>;
 

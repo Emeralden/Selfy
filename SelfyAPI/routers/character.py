@@ -9,6 +9,7 @@ from SelfyAPI.models.npc import NPC
 from ..dependencies import SessionDep
 from ..models.character import Character
 from ..models.event import LifeEvent
+from ..schemas.event import LifeEventRead
 
 router = APIRouter(prefix="/character")
 
@@ -19,7 +20,7 @@ async def get_char(char_id: uuid.UUID, session:SessionDep):
         raise HTTPException(status_code=404, detail="Character not found.")
     return char
 
-@router.get("/{char_id}/events", response_model=List[LifeEvent])
+@router.get("/{char_id}/events", response_model=List[LifeEventRead])
 async def get_events(char_id: uuid.UUID, session: SessionDep):
     char = session.get(Character, char_id)
     if not char:

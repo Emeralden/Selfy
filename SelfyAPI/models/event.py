@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 import uuid
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Column, Field, SQLModel
+
+from ..db_types import FloatVector
 
 
 class LifeEvent(SQLModel, table=True):
@@ -10,3 +12,4 @@ class LifeEvent(SQLModel, table=True):
     age: int
     text: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    embedding: list[float] | None = Field(default=None, sa_column=Column(FloatVector(3072)))

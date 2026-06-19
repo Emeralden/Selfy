@@ -4,7 +4,8 @@ import { persist } from 'zustand/middleware';
 interface CharacterState {
   charId: string | null;
   justBorn: boolean;
-  setCharId: (id: string) => void;
+  setCharId: (id: string) => void;      // silent — session restore
+  markJustBorn: (id: string) => void;   // triggers birth sound
   clearJustBorn: () => void;
 }
 
@@ -13,7 +14,8 @@ export const useCharacterStore = create<CharacterState>()(
     (set) => ({
       charId: null,
       justBorn: false,
-      setCharId: (id: string) => set({ charId: id, justBorn: true }),
+      setCharId: (id: string) => set({ charId: id }),
+      markJustBorn: (id: string) => set({ charId: id, justBorn: true }),
       clearJustBorn: () => set({ justBorn: false }),
     }),
     {

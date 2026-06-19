@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { z } from "zod";
+import { apiClient } from "@/lib/apiClient";
 
 
 const registerSchema = z
@@ -69,34 +70,21 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("https://selfy-yu0z.onrender.com/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          username: data.username,
-          password: data.password,
-        }),
+      await apiClient.post("/auth/register", {
+        username: data.username,
+        password: data.password,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail ?? "Registration failed");
-      }
-      const loginRes = await fetch("https://selfy-yu0z.onrender.com/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          username: data.username,
-          password: data.password,
-        }),
-        credentials: "include",
-      });
-      if (!loginRes.ok) throw new Error("Auto-login failed after registration");
+
+      await apiClient.post(
+        "/auth/login",
+        new URLSearchParams({ username: data.username, password: data.password }),
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      );
 
       router.push("/new-life");
-
     } catch (e: unknown) {
-      setSubmitError(e instanceof Error ? e.message : "Something went wrong.");
+      const detail = (e as any)?.response?.data?.detail;
+      setSubmitError(detail ?? (e instanceof Error ? e.message : "Something went wrong."));
     } finally {
       setIsSubmitting(false);
     }

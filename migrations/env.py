@@ -5,6 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from SelfyAPI.config import settings
+
 from sqlmodel import SQLModel
 
 from SelfyAPI.models.user import User
@@ -15,6 +17,9 @@ from SelfyAPI.models.event import LifeEvent
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override the ini URL with the real DATABASE_URL from .env
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

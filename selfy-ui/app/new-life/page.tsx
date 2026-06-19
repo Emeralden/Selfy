@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -91,7 +91,9 @@ export default function NewLifePage() {
     }
   };
 
-  const setCharId = useCharacterStore((s) => s.setCharId);
+  const markJustBorn    = useCharacterStore((s) => s.markJustBorn);
+  const currentCharId   = useCharacterStore((s) => s.charId);
+  const queryClient     = useQueryClient();
 
   const onSubmit = async (data: GenesisFormValues) => {
     setIsSubmitting(true);
@@ -99,7 +101,10 @@ export default function NewLifePage() {
     try {
       const res = await apiClient.post("/life/birth", data);
       const char = res.data;
-      setCharId(char.id);
+      // Nuke stale dead-char cache so AuthGuard doesn't bounce us back
+      queryClient.removeQueries({ queryKey: ["character", currentCharId] });
+      queryClient.invalidateQueries({ queryKey: ["authMe"] });
+      markJustBorn(char.id);
       router.push("/");
     } catch (e: unknown) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong.");
