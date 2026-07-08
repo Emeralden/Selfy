@@ -21,7 +21,7 @@ def request_money(char:Character, npc:NPC):
     if not npc.is_significant:
         return "Who are you? I'm not giving you money!"
     chance = char.appeal + random.randint(0,100)
-    if chance > npc.strictness:
+    if chance > npc.temperament:
         char.money += 500
         char.joy  += 5
         return f"Your {npc.role} gave you money!"
@@ -36,7 +36,7 @@ def talk_trash(char:Character, npc:NPC):
         npc.resentment += 10
         return f"Your {npc.role} slapped you!"
     elif npc.temperament<=40:
-        char.hubris += 5
+        char.karma -= 5
         npc.affection -= 20
         return f"Your {npc.role} cried!"
     else:
@@ -49,16 +49,5 @@ def hang_out(char:Character, npc:NPC):
     else:
         npc.affection += 10
     
-    if char.avarice >= 70:
-        char.joy -= 5
-
     return f"You spent some time with your {npc.role}!"
 
-def study_harder(char_id:uuid.UUID):
-
-    return "You studied hard!"
-    
-
-def skip_class(char_id:uuid.UUID):
-
-    return "You skipped school!"

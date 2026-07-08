@@ -17,15 +17,12 @@ class NPC(SQLModel, table=True):
     role: str
     alive: bool = Field(default=True)
 
-    empathy: int = Field(default=50)
     temperament: int = Field(default=50)
-    strictness: int = Field(default=50)
-    loyalty: int = Field(default=50)
+    resentment: int = Field(default=50)
 
     affection: int = Field(default=50)
     trust: int = Field(default=50)
     respect: int = Field(default=50)
-    resentment: int = Field(default=50)
 
     relation_label: str = Field(default="Neutral")
 

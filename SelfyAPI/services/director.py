@@ -60,12 +60,6 @@ async def embed_memory(text: str) -> list[float]:
 
 
 async def embed_and_save(event_id: UUID) -> None:
-    """
-    Background task — async so FastAPI runs it on the event loop without
-    blocking threads. Two short-lived sessions: one to read, one to write.
-    The DB connection is released before the Gemini call so it never
-    starves the connection pool.
-    """
     # 1. Grab text, then immediately release the connection
     with Session(engine) as session:
         event = session.get(LifeEvent, event_id)

@@ -7,6 +7,31 @@ import { useCharacterStore } from "./store/useCharacterStore";
 import { apiClient } from "@/lib/apiClient";
 
 
+const STAGE_META: Record<string, { label: string; icon: string }> = {
+  "Baby":        { label: "Baby",       icon: "baby_changing_station" },
+  "Toddler":     { label: "Toddler",    icon: "child_care" },
+  "Pre-School":  { label: "Pre-School", icon: "toys" },
+  "School":      { label: "School",     icon: "school" },
+  "Exam-Prep":   { label: "Exam Prep",  icon: "menu_book" },
+  "University":  { label: "University", icon: "account_balance" },
+  "Adult":       { label: "Path",       icon: "trending_up" },
+  "Elder":       { label: "Path",       icon: "trending_up" },
+};
+
+const STAGE_ROUTES: Record<string, string> = {
+  "Pre-School": "/pre-school",
+  "School":     "/school",
+  "Exam-Prep":  "/exam-prep",
+};
+
+function getPathStage(stage: string): { label: string; icon: string } {
+  return STAGE_META[stage] ?? { label: "Path", icon: "trending_up" };
+}
+
+function getStageRoute(stage: string): string {
+  return STAGE_ROUTES[stage] ?? "#";
+}
+
 type LifeEvent = {
   id: string;
   age: number;
@@ -136,19 +161,11 @@ export default function Page() {
               </div>
               <div className="ml-3 space-y-3 border-l-2 border-slate-100 pl-6">
                 {getEventsForAge(age).map((event: LifeEvent) => (
-                  <div key={event.id} className="py-2">
-                    
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className={`h-1.5 w-1.5 rounded-full ${isCurrent ? 'bg-primary' : 'bg-slate-300'}`} />
-                      <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isCurrent ? 'text-on-surface-variant' : 'text-on-surface-variant/70'}`}>
-                        Memory
-                      </span>
-                    </div>
-
+                  <div key={event.id} className="flex items-start gap-2 py-1.5">
+                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${isCurrent ? 'bg-primary' : 'bg-slate-300'}`} />
                     <p className={`text-sm leading-snug ${isCurrent ? 'text-on-surface/80' : 'text-on-surface/60'}`}>
                       {event.text}
                     </p>
-                    
                   </div>
                 ))}
               </div>
@@ -312,15 +329,17 @@ export default function Page() {
             </div>
 
             <div className="flex w-[30%] flex-col gap-2">
-              <button
-                type="button"
-                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined mb-0.5 text-xl text-savvy">trending_up</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
-                  Path
-                </span>
-              </button>
+              <Link href={getStageRoute(character?.stage ?? "")} className="flex flex-1">
+                <button
+                  type="button"
+                  className="group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined mb-0.5 text-xl text-savvy">{getPathStage(character?.stage ?? "").icon}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                    {getPathStage(character?.stage ?? "").label}
+                  </span>
+                </button>
+              </Link>
 
               <button
                 type="button"

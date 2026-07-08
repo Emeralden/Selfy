@@ -3,11 +3,11 @@
     {
       "id": "stolen_toy_01",
       "version": "1.0",
-      "conditions": [ ["composure", "<=", 40] ],
+      "conditions": [ ["karma", "<=", 40] ],
       "text_base": "Your rival cousin stole your favorite toy.",
       "choices": [
         {"id": "cry", "effects": {"joy": -10}},
-        {"id": "hit", "effects": {"hubris": 5, "sociability": -5}}
+        {"id": "hit", "effects": {"sociability": -5}}
       ]
     }
   ],
@@ -18,8 +18,8 @@
       "conditions": [ ["country", "==", "IN"], ["stage", "==", "Adult"] ],
       "text_base": "Your Nosy Aunt has brought a marriage proposal.",
       "choices": [
-        {"id": "accept", "effects": {"reputation": 10, "joy": -5}},
-        {"id": "reject", "effects": {"reputation": -20, "joy": 10}}
+        {"id": "accept", "effects": {"karma": 10, "joy": -5}},
+        {"id": "reject", "effects": {"karma": -20, "joy": 10}}
       ]
     }
   ]

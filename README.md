@@ -1,7 +1,7 @@
 # Selfy
 
-[![Live App](https://img.shields.io/badge/Live-App-brightgreen?style=for-the-badge)](selfy-web.vercel.app)
-[![API Docs](https://img.shields.io/badge/API-Docs-blue?style=for-the-badge)](selfy-yu0z.onrender.com/docs)
+[![Live App](https://img.shields.io/badge/Live-App-brightgreen?style=for-the-badge)](https://selfy-web.vercel.app/)
+[![API Docs](https://img.shields.io/badge/API-Docs-blue?style=for-the-badge)](https://selfy-yu0z.onrender.com/docs)
 
 <img width="926" height="342" alt="Screenshot 2026-05-28 170553-Picsart-AiImageEnhancer" src="https://github.com/user-attachments/assets/e866ee36-0f75-46ea-9831-a3d729f0c5cc" />
 

@@ -126,7 +126,7 @@ export default function RegisterPage() {
               id="username"
               type="text"
               autoComplete="username"
-              placeholder="e.g. shadow_coder"
+              placeholder="e.g. sai_bhargav"
               className={inputCls}
               {...register("username")}
             />

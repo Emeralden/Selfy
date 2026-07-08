@@ -7,13 +7,14 @@ from fastapi import BackgroundTasks
 
 from SelfyAPI.dependencies import RedisDep
 from SelfyAPI.models.character import Character
+from SelfyAPI.services.engine.dispatcher import subscribe_age_up
 from SelfyAPI.services.llm import generate_flavor
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 NAMES_PATH = os.path.join(BASE_DIR, "data", "events.json")
 
-with open(NAMES_PATH, 'r') as file:
+with open(NAMES_PATH, 'r', encoding='utf-8') as file:
     EVENTS = json.load(file)
 
 OPS = {
@@ -93,3 +94,10 @@ async def enrich_event(event:dict, tone:str, redis:RedisDep, bg_tasks:Background
         )
 
     return event
+
+@subscribe_age_up(priority=50)
+async def process_random_events(char, session, redis, bg_tasks, log_memory):
+    raw_event = roll_event(char)
+    if raw_event:
+        rich_event = await enrich_event(raw_event, "same as original", redis, bg_tasks)
+        log_memory(rich_event["text_base"])

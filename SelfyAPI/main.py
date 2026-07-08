@@ -5,7 +5,11 @@ from fastapi import FastAPI
 from SelfyAPI import database
 from SelfyAPI.cache import redis_client
 from SelfyAPI.dependencies import RedisDep
-from SelfyAPI.routers import auth, life, social, school, character
+from SelfyAPI.routers import auth, pre_school, life, social, character, school, exam_prep
+
+import SelfyAPI.services.aging
+import SelfyAPI.services.cleanup
+import SelfyAPI.services.scenarios
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,8 +47,10 @@ async def ping_redis(redis: RedisDep):
     value = await redis.get("redis")
     return {"redis": value}
 
-app.include_router(life.router, tags=["Lifecycle"])
-app.include_router(social.router, tags=["Social"])
-app.include_router(school.router, tags=["Education"])
+app.include_router(life.router,      tags=["Lifecycle"])
+app.include_router(social.router,    tags=["Social"])
+app.include_router(pre_school.router, tags=["Pre-School"])
+app.include_router(school.router,     tags=["School"])
+app.include_router(exam_prep.router,  tags=["Exam-Prep"])
 app.include_router(character.router, tags=["Character"])
-app.include_router(auth.router, tags=["Security"])
+app.include_router(auth.router,      tags=["Security"])

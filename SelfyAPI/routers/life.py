@@ -5,10 +5,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from sqlmodel import col, select
 
 from SelfyAPI.models.npc import NPC
-from SelfyAPI.services.aging import calculate_grades, relationship_decay, roll_reaper, stat_decay, transition_stage
-from SelfyAPI.services.director import generate_eulogy, embed_and_save
+from SelfyAPI.services.director import embed_and_save
+from SelfyAPI.services.engine.dispatcher import emit_age_up
 from SelfyAPI.services.naming import generate_name as svc_generate_name, get_states as svc_get_states
-from SelfyAPI.services.scenarios import enrich_event, roll_event
 
 from ..dependencies import RedisDep, SessionDep, UserDep
 from ..models.character import Character, CharacterCreate, Gender, Stage
@@ -96,50 +95,16 @@ async def age_up(char_id: uuid.UUID, session: SessionDep, redis:RedisDep, bg_tas
     if not char.alive:
         raise HTTPException(status_code=400, detail="Character already dead.")
 
-    acad_stages = {Stage.CHILDHOOD, Stage.HIGH_SCHOOL, Stage.COLLEGE}
-    redis_key = f"char:{char_id}:school"
-    if char.stage in acad_stages:
-        efforts = int(await redis.hget(redis_key, "efforts") or 0)
-        skips = int(await redis.hget(redis_key, "skips") or 0)
-        calculate_grades(char, efforts, skips)
+    def log_memory(text: str):
+        evt = LifeEvent(char_id=char.id, age=char.age, text=text)
+        session.add(evt)
+        session.flush() 
+        bg_tasks.add_task(embed_and_save, evt.id)
+    
+    await emit_age_up(char, session, redis, bg_tasks, log_memory)
 
-    char.age += 1
-
-    transition_stage(char, session)
-    stat_decay(char)
-    relationship_decay(char, char.npcs)
-    roll_reaper(char)
-
-    age_memory = LifeEvent(
-        char_id=char.id, age=char.age, text=(f"I am now {char.age} years old.")
-    )
-
-    if char.alive:
-        raw_event = roll_event(char)
-        if raw_event:
-            rich_event = await enrich_event(raw_event, "same as original", redis, bg_tasks)
-            event_log = LifeEvent(
-                char_id=char.id, age=char.age, text=rich_event["text_base"]
-            )
-            session.add(event_log)
-            bg_tasks.add_task(embed_and_save, event_log.id)
-    else:
-        eulogy_text = await generate_eulogy(char.id, f"{char.first_name} {char.last_name}", char.age, session)
-        
-        final_event = LifeEvent(char_id=char.id, age=char.age, text=eulogy_text)
-        session.add(final_event)
-        bg_tasks.add_task(embed_and_save, final_event.id)
-
-    session.add(age_memory)
-    session.add(char)
     session.commit()
-    bg_tasks.add_task(embed_and_save, age_memory.id)
-
     session.refresh(char)
-
-    if char.stage in acad_stages:
-        await redis.delete(redis_key)
-    await redis.delete(f"cooldowns:{char_id}")
 
     return char
 

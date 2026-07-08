@@ -4,8 +4,53 @@ import random
 from SelfyAPI.dependencies import SessionDep
 from SelfyAPI.models.character import Character, Stage
 from SelfyAPI.models.npc import NPC
+from SelfyAPI.services.director import generate_eulogy
+from SelfyAPI.services.engine.dispatcher import subscribe_age_up
 from SelfyAPI.services.social import purge_npcs, relation_label, spawn_extended, spawn_school_cohort
 
+# Tags that are only valid within a specific age window.
+# When the character ages out, they get stripped automatically.
+_EXPIRING_TAGS: dict[int, list[str]] = {
+    14: ["Monitor", "Tuition"],   # school phase ends after age 13
+}
+
+@subscribe_age_up(priority=5)
+def process_school(char, session, redis, bg_tasks, log_memory):
+    """Strip school-phase tags once the character ages out of their window."""
+    tags_to_remove = _EXPIRING_TAGS.get(char.age + 1, [])  # +1 because age increments at priority 10
+    if tags_to_remove and char.tags:
+        char.tags = [t for t in char.tags if t not in tags_to_remove]
+
+def transition_stage(char:Character, session:SessionDep):
+
+    if char.age==1:
+        char.stage = Stage.TODDLER
+    if char.age==3:
+        char.stage = Stage.PRE_SCHOOL
+    if char.age==6:
+        char.stage = Stage.SCHOOL
+        spawn_school_cohort(char, session, 15)
+        spawn_extended(char, session)
+    if char.age==16:
+        char.stage = Stage.EXAM_PREP
+        purge_npcs(char, session)
+        spawn_school_cohort(char, session, 15)
+    if char.age==18:
+        char.stage = Stage.UNIVERSITY
+        purge_npcs(char, session)
+        spawn_school_cohort(char, session, 20)
+    if char.age==22:
+        char.stage = Stage.ADULT
+        char.contextual = {}
+        purge_npcs(char, session)
+    if char.age==61:
+        char.stage = Stage.ELDER
+
+@subscribe_age_up(priority=10)
+def process_base_aging(char, session, redis, bg_tasks, log_memory):
+    char.age += 1
+    log_memory(f"I am now {char.age} years old.")
+    transition_stage(char, session)
 
 def stat_decay(char: Character):
 
@@ -30,10 +75,6 @@ def stat_decay(char: Character):
         char.joy+=1
     elif char.joy>base:
         char.joy-=1
-    if char.neuroticism>70:
-        char.joy+=random.randint(-5,5)
-    if char.composure>70:
-        char.joy = (char.joy + base)//2
     
     if 70>char.age>40:
         char.appeal-=1
@@ -47,14 +88,19 @@ def relationship_decay(char:Character, npcs:list[NPC]):
         if char.sociability>80:
             npc.affection-=0
         else:
-            if npc.loyalty>80:
+            if npc.temperament>70:
                 npc.affection-=0
-            elif npc.loyalty<20:
+            elif npc.temperament<30:
                 npc.affection-=4
             else:
                 npc.affection-=2
         
         npc.relation_label = relation_label(npc)
+
+@subscribe_age_up(priority=20)
+def process_stat_decay(char, session, redis, bg_tasks, log_memory):
+    stat_decay(char)
+    relationship_decay(char, char.npcs)
 
 
 def roll_reaper(char:Character):
@@ -71,60 +117,13 @@ def roll_reaper(char:Character):
     if death_roll and char.karma<=90:
         char.alive=False
         
+@subscribe_age_up(priority=30)
+def process_reaper(char, session, redis, bg_tasks, log_memory):
+    roll_reaper(char)
 
-def transition_stage(char:Character, session:SessionDep):
-
-    if char.age==4:
-        char.stage = Stage.CHILDHOOD
-        grade = (0.5 * char.mind) + (0.5 * char.discipline)
-        char.contextual = {
-            "grade": grade,
-            "performance": "Average"
-        }
-    if char.age==5:
-        spawn_school_cohort(char, session, 15)
-        spawn_extended(char, session)
-    if char.age==12:
-        char.stage = Stage.HIGH_SCHOOL
-        purge_npcs(char, session)
-        spawn_school_cohort(char, session, 15)
-    if char.age==18:
-        char.stage = Stage.COLLEGE
-        purge_npcs(char, session)
-        spawn_school_cohort(char, session, 10)
-    if char.age==22:
-        char.stage = Stage.ADULT
-        char.contextual = {}
-        purge_npcs(char, session)
-    if char.age==61:
-        char.stage = Stage.ELDER
-
-
-def calculate_grades(char: Character, efforts, skips):
-    
-    effort_bonus  = min(15, efforts * 20)
-    penalty = skips * 8
-    grade = char.contextual["grade"]
-
-    grade += effort_bonus - penalty
-    performance = ""
-
-    if grade>=90:
-        performance="Topper"
-    elif grade>=75:
-        performance="Above Avg"
-    elif grade>=50:
-        performance="Average"
-    elif grade>=35:
-        performance="Struggling"
-    elif grade<35:
-        performance="Failing"
-
-    contextual = dict(char.contextual or {})
-    contextual["performance"] = performance
-    contextual["grade"] = grade
-    char.contextual = contextual
-    
-    return performance
-
+@subscribe_age_up(priority=999)
+async def process_funeral(char, session, redis, bg_tasks, log_memory):
+    if not char.alive:
+        eulogy = await generate_eulogy(char.id, f"{char.first_name} {char.last_name}", char.age, session)
+        log_memory(eulogy)
 

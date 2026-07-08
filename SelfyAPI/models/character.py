@@ -2,6 +2,7 @@ import uuid
 from enum import Enum
 from typing import TYPE_CHECKING, Any, List
 
+import sqlalchemy as sa
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -21,10 +22,12 @@ class Gender(str, Enum):
     FEMALE = "Female"
 
 class Stage(str, Enum):
-    NEWBORN = "Newborn"
-    CHILDHOOD = "Childhood"
-    HIGH_SCHOOL = "High School"
-    COLLEGE = "College"
+    BABY = "Baby"
+    TODDLER = "Toddler"
+    PRE_SCHOOL = "Pre-School"
+    SCHOOL = "School"
+    EXAM_PREP = "Exam-Prep"
+    UNIVERSITY = "University"
     ADULT = "Adult"
     ELDER = "Elder"
 
@@ -36,6 +39,14 @@ class CharacterCreate(SQLModel):
     state: str
     gender: Gender
 
+# All int stats that must stay within [0, 100]
+STAT_FIELDS = {
+    "body", "mind", "joy", "appeal", "savvy",
+    "fertility", "immunity",
+    "discipline", "sociability", "karma",
+    "grades",
+}
+
 class Character(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="user.id", index=True)
@@ -46,7 +57,13 @@ class Character(SQLModel, table=True):
     country: str
     state: str
     age: int = Field(default=0)
-    stage: Stage = Field(default=Stage.NEWBORN)
+    stage: Stage = Field(
+        default=Stage.BABY,
+        sa_column=Column(
+            sa.Enum(Stage, values_callable=lambda x: [e.value for e in x]),
+            nullable=False,
+        ),
+    )
     alive: bool = Field(default=True)
     money: int = Field(default=0)
 
@@ -56,33 +73,32 @@ class Character(SQLModel, table=True):
     appeal: int = Field(default=75)
     savvy: int = Field(default=25)
 
-    composure: int = Field(default=30)
-    neuroticism: int = Field(default=50)
     sexuality: Sexuality = Field(default=Sexuality.STRAIGHT)
     fertility: int = Field(default=80)
     immunity: int = Field(default=70)
-    metabolism: int = Field(default=50)
 
     discipline: int = Field(default=50)
-    empathy: int = Field(default=40)
     sociability: int = Field(default=45)
     karma: int = Field(default=85)
-    hubris: int = Field(default=25)
-    avarice: int = Field(default=20)
-
-    echoes: list[dict[str, Any]] = Field(default=[], sa_column=Column(JSON))
 
     npcs: list["NPC"] = Relationship(
         back_populates="character",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
-    contextual: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    grades: int = Field(default=50)
+
+    tags: List[str] = Field(default=[], sa_column=Column(JSON))
 
     avatar_dna: dict = Field(default={}, sa_column=Column(JSON))
 
     class Config:
         from_attributes = True
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name in STAT_FIELDS and isinstance(value, int):
+            value = max(0, min(100, value))
+        super().__setattr__(name, value)
 
 class ActionRequest(SQLModel):
     action: str

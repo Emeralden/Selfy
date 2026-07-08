@@ -28,10 +28,8 @@ def spawn_extended(char:Character, session:SessionDep):
                  "gender": char.gender,
                  "is_significant": True
                 }, 
-                {"role": "Nosy Aunt", 
-                 "strictness": 40, 
+                {"role": "Nosy Aunt",
                  "affection": -20,
-                 "empathy": -10,
                  "respect": 10,
                  "age": random.randint(25,40),
                  "gender": "Female",

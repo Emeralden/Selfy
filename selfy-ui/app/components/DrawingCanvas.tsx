@@ -1,0 +1,231 @@
+"use client";
+
+import { useRef, useState, useEffect, useCallback } from "react";
+
+interface DrawingCanvasProps {
+  onClose: () => void;
+  onDone: (dataUrl: string) => void;
+  isLoading?: boolean;
+}
+
+const COLORS = [
+  { name: "mind",   hex: "#1D4ED8" },
+  { name: "savvy",  hex: "#00C800" },
+  { name: "appeal", hex: "#FF007F" },
+];
+
+export default function DrawingCanvas({ onClose, onDone, isLoading = false }: DrawingCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const [color, setColor] = useState(COLORS[0].hex);
+  const [isEmpty, setIsEmpty] = useState(true);
+
+  // Init canvas with white fill
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    const { width, height } = canvas.getBoundingClientRect();
+    canvas.width = width;
+    canvas.height = height;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }, []);
+
+  const getPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const startDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+    isDrawing.current = true;
+    const pos = getPos(e);
+    lastPos.current = pos;
+    // Dot on tap
+    const ctx = canvasRef.current!.getContext("2d")!;
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(pos.x, pos.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    setIsEmpty(false);
+  };
+
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!isDrawing.current || !lastPos.current) return;
+    const ctx = canvasRef.current!.getContext("2d")!;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 14;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastPos.current = pos;
+    setIsEmpty(false);
+  };
+
+  const endDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    isDrawing.current = false;
+    lastPos.current = null;
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setIsEmpty(true);
+  };
+
+  return (
+    /* Backdrop */
+    <div
+      className="fixed inset-0 z-200 flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-slate-950/30 vignette-overlay" />
+
+      {/* Card */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={[
+          "relative z-10 w-full max-w-sm overflow-hidden",
+          "rounded-4xl border border-white/60",
+          "bg-white/95 backdrop-blur-2xl",
+          "shadow-[0_32px_80px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.5)_inset]",
+          "flex flex-col",
+          "animate-in zoom-in-95 fade-in duration-200",
+        ].join(" ")}
+      >
+        {/* Top gradient strip */}
+        <div className="h-1 w-full rounded-t-4xl bg-linear-to-r from-violet-500 via-primary to-purple-400" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🖍️</span>
+            <h3 className="text-[17px] font-black tracking-tight text-on-surface">
+              Draw Something Weird
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 active:scale-90 transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        {/* Canvas area */}
+        <div className="relative mx-5 overflow-hidden rounded-2xl bg-white"
+          style={{
+            height: 260,
+            border: "1.5px solid #E2E8F0",
+            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.04)",
+          }}
+        >
+          {/* Paper lines */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(0deg, transparent, transparent 27px, #94A3B8 27px, #94A3B8 28px)",
+            }}
+          />
+
+          {/* Empty hint */}
+          {isEmpty && (
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 select-none">
+              <span className="text-4xl opacity-20">✏️</span>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
+                Scribble here
+              </p>
+            </div>
+          )}
+
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
+            onPointerDown={startDraw}
+            onPointerMove={draw}
+            onPointerUp={endDraw}
+            onPointerCancel={endDraw}
+          />
+        </div>
+
+        {/* Color picker + clear */}
+        <div className="flex items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-3">
+            {COLORS.map((c) => (
+              <button
+                key={c.name}
+                onClick={() => setColor(c.hex)}
+                className="transition-all duration-150 active:scale-90"
+                style={{
+                  width: color === c.hex ? 34 : 28,
+                  height: color === c.hex ? 34 : 28,
+                  borderRadius: "50%",
+                  background: c.hex,
+                  boxShadow:
+                    color === c.hex
+                      ? `0 0 0 2px white, 0 0 0 4px ${c.hex}`
+                      : "0 2px 6px rgba(0,0,0,0.18)",
+                  transition: "all 0.15s ease",
+                }}
+                aria-label={c.name}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={clearCanvas}
+            disabled={isEmpty}
+            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold text-slate-400 hover:bg-rose-50 hover:text-rose-500 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <span className="material-symbols-outlined text-[16px]">delete</span>
+            Clear
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div
+          className="mx-5 h-px"
+          style={{ background: "linear-gradient(to right, transparent, #E2E8F0, transparent)" }}
+        />
+
+        {/* Done button */}
+        <div className="px-5 py-4">
+          <button
+            id="drawing-done"
+            onClick={() => onDone(canvasRef.current!.toDataURL("image/png"))}
+            disabled={isLoading}
+            className="w-full rounded-2xl py-3 text-[15px] font-black tracking-wide text-white transition-all duration-150 active:scale-[0.97] disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2"
+            style={{
+              background: "linear-gradient(135deg, #FF8C42 0%, #FF6B00 100%)",
+              boxShadow: "0 6px 20px -4px rgba(255,107,0,0.45)",
+            }}
+          >
+            {isLoading ? (
+              <>
+                <span
+                  className="inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+                />
+                Sending...
+              </>
+            ) : (
+              <>Done! 🎨</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
