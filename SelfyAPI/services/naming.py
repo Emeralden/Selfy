@@ -1,35 +1,23 @@
-import json
-import os
-import random
+"""Name generation — delegates to selfy-engine."""
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from SelfyAPI.services.engine import client as engine
 
-NAMES_PATH = os.path.join(BASE_DIR, "data", "names.json")
-GEO_PATH = os.path.join(BASE_DIR, "data", "geography.json")
 
-with open(NAMES_PATH, 'r') as file:
-    NAMES = json.load(file)
+async def generate_name_async(gender: str, country: str, state: str, family_name: str = None) -> tuple[str, str]:
+    """Async version — use this in async contexts."""
+    result = await engine.resolve("names.generate", {
+        "gender": gender,
+        "country": country,
+        "state": state,
+        "family_name": family_name,
+    })
+    if "error" in result:
+        raise ValueError(result["error"])
+    return result["first_name"], result["last_name"]
 
-with open(GEO_PATH, 'r') as file:
-    GEOGRAPHY = json.load(file)
 
-def generate_name(gender:str, country:str, state:str, family_name:str = None):
-
-    name_group = GEOGRAPHY[country]["states"][state]["name_group"]
-    print(name_group)
-    firsts = NAMES[name_group]["first_names"][gender]
-    lasts = NAMES[name_group]["last_names"]
-    
-    first_name = random.choice(firsts)
-
-    if not family_name:
-        last_name = random.choice(lasts)
-    else:
-        last_name = family_name
-
-    return first_name, last_name
-
-def get_states(country: str) -> list[str]:
-    if country not in GEOGRAPHY:
+async def get_states(country: str) -> list[str]:
+    result = await engine.resolve("names.states", {"country": country})
+    if isinstance(result, dict) and "error" in result:
         return []
-    return sorted(GEOGRAPHY[country]["states"].keys())
+    return result

@@ -1,6 +1,4 @@
 
-import json
-import os
 import random
 
 from fastapi import BackgroundTasks
@@ -8,96 +6,51 @@ from fastapi import BackgroundTasks
 from SelfyAPI.dependencies import RedisDep
 from SelfyAPI.models.character import Character
 from SelfyAPI.services.engine.dispatcher import subscribe_age_up
+from SelfyAPI.services.engine import client as engine
+from SelfyAPI.services.engine.payload import char_state, apply_stat_changes
 from SelfyAPI.services.llm import generate_flavor
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-NAMES_PATH = os.path.join(BASE_DIR, "data", "events.json")
-
-with open(NAMES_PATH, 'r', encoding='utf-8') as file:
-    EVENTS = json.load(file)
-
-OPS = {
-    ">=": lambda a, b: a >= b,
-    "<=": lambda a, b: a <= b,
-    "==": lambda a, b: a == b,
-    "!=": lambda a, b: a != b,
-    "in": lambda a, b: a in b
-}
-
-def check_conditions(char:Character, conditions:list):
-    
-    for condition in conditions:
-        char_val = getattr(char, condition[0])
-        
-        if not OPS[condition[1]](char_val, condition[2]):
-            return False
-        
-    return True
-
-def roll_event(char:Character):
-    bucket = None
-    
-    if char.age<=5:
-        bucket="age_0_5"
-    elif 18<=char.age<=30:
-        bucket="age_18_30"
-    
-    if bucket is None:
-        return None
-
-    events = EVENTS.get(bucket, [])
-
-    if not events:
-        return None
-
-    valid_events = []
-
-    for event in events:
-        conditions = event["conditions"]
-        if check_conditions(char, conditions):
-            valid_events.append(event)
-
-    if not valid_events:
-        return None
-
-    return random.choice(valid_events)        
-
-
-async def enrich_event(event:dict, tone:str, redis:RedisDep, bg_tasks:BackgroundTasks):
-
-    cache_key = f"event:{event['id']}:{tone}:v{event['version']}"
-
+async def enrich_event(event: dict, tone: str, redis: RedisDep, bg_tasks: BackgroundTasks):
+    """LLM-enrich event text. Unchanged — this is API concern, not math."""
+    cache_key = f"event:{event['id']}:{tone}:v{event.get('version', '1.0')}"
     cached_text = await redis.get(cache_key)
 
     if cached_text:
         original_base = event["text_base"]
         event["text_base"] = cached_text
         if random.random() < 0.2:
-            bg_tasks.add_task(
-                generate_flavor,
-                event["id"],
-                event["version"],
-                original_base,
-                tone,
-                redis
-            )
-
+            bg_tasks.add_task(generate_flavor, event["id"], event.get("version", "1.0"),
+                              original_base, tone, redis)
     else:
-        bg_tasks.add_task(
-            generate_flavor,
-            event["id"],
-            event["version"],
-            event["text_base"],
-            tone,
-            redis
-        )
+        bg_tasks.add_task(generate_flavor, event["id"], event.get("version", "1.0"),
+                          event["text_base"], tone, redis)
 
     return event
 
+
 @subscribe_age_up(priority=50)
 async def process_random_events(char, session, redis, bg_tasks, log_memory):
-    raw_event = roll_event(char)
-    if raw_event:
-        rich_event = await enrich_event(raw_event, "same as original", redis, bg_tasks)
-        log_memory(rich_event["text_base"])
+    """Roll for an ambient event. Engine decides what fires, API logs + enriches."""
+    result = await engine.resolve("ambient.roll", char_state(char))
+    raw_event = result.get("event")
+
+    if not raw_event:
+        return
+
+    # Normalize into the shape enrich_event expects
+    event = {
+        "id":        raw_event["id"],
+        "version":   "1.0",
+        "text_base": raw_event.get("text", ""),
+        "title":     raw_event.get("id", ""),
+        "choices":   raw_event.get("choices", []),
+        "tone":      raw_event.get("tone", "neutral"),
+    }
+
+    await enrich_event(event, event["tone"], redis, bg_tasks)
+    log_memory(event["text_base"])
+
+    # Store pending event in char.contextual so the router can serve choices
+    char.contextual = char.contextual or {}
+    char.contextual["pending_event"] = raw_event

@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     secret_key: str
     gemini_api_key: str
     env_state: str = "prod"
+    engine_url: str = "http://localhost:8001"
+    engine_api_key: str = "dev-key"
 
     class Config:
         env_file = ".env"

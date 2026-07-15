@@ -7,7 +7,7 @@ from sqlmodel import col, select
 from SelfyAPI.models.npc import NPC
 from SelfyAPI.services.director import embed_and_save
 from SelfyAPI.services.engine.dispatcher import emit_age_up
-from SelfyAPI.services.naming import generate_name as svc_generate_name, get_states as svc_get_states
+from SelfyAPI.services.naming import generate_name_async, get_states as svc_get_states
 
 from ..dependencies import RedisDep, SessionDep, UserDep
 from ..models.character import Character, CharacterCreate, Gender, Stage
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/life")
 
 @router.get("/states")
 async def get_states_route(country: str):
-    states = svc_get_states(country)
+    states = await svc_get_states(country)
     if not states:
         raise HTTPException(status_code=404, detail=f"No states found for country: {country}")
     return states
@@ -25,10 +25,10 @@ async def get_states_route(country: str):
 @router.get("/generate-name")
 async def generate_name_route(gender: str, country: str, state: str):
     try:
-        first_name, last_name = svc_generate_name(gender, country, state)
+        first_name, last_name = await generate_name_async(gender, country, state)
         return {"first_name": first_name, "last_name": last_name}
-    except KeyError:
-        raise HTTPException(status_code=400, detail=f"No name data for {country}/{state}")
+    except (ValueError, KeyError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/birth", response_model=Character)
@@ -41,7 +41,7 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user: U
 
     family_name = new_char.last_name
 
-    dad_first_name, _ = svc_generate_name("Male", country, state)
+    dad_first_name, _ = await generate_name_async("Male", country, state)
     dad = NPC(
         first_name=dad_first_name,
         last_name=family_name,
@@ -52,7 +52,7 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user: U
         is_significant=True
     )
 
-    mom_first_name, _ = svc_generate_name("Female", country, state)
+    mom_first_name, _ = await generate_name_async("Female", country, state)
     mom = NPC(
         first_name=mom_first_name,
         last_name=family_name,

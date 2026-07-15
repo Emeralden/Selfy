@@ -5,7 +5,7 @@ from sqlmodel import select
 from SelfyAPI.dependencies import SessionDep
 from SelfyAPI.models.character import Character, Gender
 from SelfyAPI.models.npc import NPC
-from SelfyAPI.services.naming import generate_name
+from SelfyAPI.services.naming import generate_name_async
 
 
 def get_reputation(char:Character):
@@ -19,55 +19,54 @@ def get_reputation(char:Character):
     return reputation
 
 
-def spawn_extended(char:Character, session:SessionDep):
-    archetypes = [{"role": "Rival Cousin", 
+async def spawn_extended(char: Character, session: SessionDep):
+    archetypes = [{"role": "Rival Cousin",
                  "resentment": 30,
                  "temperament": 20,
                  "affection": -10,
                  "age": random.randint(char.age-1, char.age+1),
                  "gender": char.gender,
                  "is_significant": True
-                }, 
+                },
                 {"role": "Nosy Aunt",
                  "affection": -20,
                  "respect": 10,
-                 "age": random.randint(25,40),
+                 "age": random.randint(25, 40),
                  "gender": "Female",
                  "is_significant": True}]
-    
+
     for archetype in archetypes:
-        first_name, last_name = generate_name(archetype["gender"], char.country, char.state)
+        first_name, last_name = await generate_name_async(archetype["gender"], char.country, char.state)
         archetype["gender"] = Gender(archetype["gender"])
         npc = NPC(first_name=first_name,
                   last_name=last_name,
                   char_id=char.id,
                   **archetype)
         session.add(npc)
-    
+
     session.commit()
     return
 
 
 
-def spawn_school_cohort(char: Character, session:SessionDep, num_kids:int):
+async def spawn_school_cohort(char: Character, session: SessionDep, num_kids: int):
 
     for _ in range(num_kids):
         gender = random.choice(["Male", "Female"])
-        first_name, last_name = generate_name(gender, char.country, char.state)
+        first_name, last_name = await generate_name_async(gender, char.country, char.state)
 
         kid = NPC(
-        first_name=first_name,
-        last_name=last_name,
-        age=random.randint((char.age)-1, (char.age)+1),
-        gender=gender,
-        role="classmate",
-        char_id=char.id,
+            first_name=first_name,
+            last_name=last_name,
+            age=random.randint((char.age)-1, (char.age)+1),
+            gender=gender,
+            role="classmate",
+            char_id=char.id,
         )
-
         session.add(kid)
 
     gender = random.choice(["Male", "Female"])
-    first_name, last_name = generate_name(gender, char.country, char.state)
+    first_name, last_name = await generate_name_async(gender, char.country, char.state)
     teacher = NPC(
         first_name=first_name,
         last_name=last_name,
@@ -75,8 +74,7 @@ def spawn_school_cohort(char: Character, session:SessionDep, num_kids:int):
         gender=gender,
         role="teacher",
         char_id=char.id,
-        )
-    
+    )
     session.add(teacher)
 
     session.commit()

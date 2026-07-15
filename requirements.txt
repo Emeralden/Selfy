@@ -10,6 +10,7 @@ psycopg2-binary
 asyncpg
 upstash-redis
 google-genai
+httpx
 alembic
 numpy
 pgvector
