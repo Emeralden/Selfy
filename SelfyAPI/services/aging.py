@@ -40,7 +40,7 @@ async def _handle_lifecycle(event: dict, char: Character, session: SessionDep):
     elif t == "purge_npcs":
         purge_npcs(char, session)
     elif t == "clear_contextual":
-        char.contextual = {}
+        pass  # no-op — contextual storage not implemented
 
 
 @subscribe_age_up(priority=20)

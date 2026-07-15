@@ -50,7 +50,3 @@ async def process_random_events(char, session, redis, bg_tasks, log_memory):
 
     await enrich_event(event, event["tone"], redis, bg_tasks)
     log_memory(event["text_base"])
-
-    # Store pending event in char.contextual so the router can serve choices
-    char.contextual = char.contextual or {}
-    char.contextual["pending_event"] = raw_event
