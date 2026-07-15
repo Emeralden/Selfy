@@ -13,7 +13,11 @@ from SelfyAPI.services.social import purge_npcs, spawn_extended, spawn_school_co
 async def process_school(char, session, redis, bg_tasks, log_memory):
     """Strip school-phase tags once the character ages out of their window."""
     result = await engine.resolve("script.tags", {"age": char.age + 1})
-    tags_to_remove = result.get("tags_to_remove", [])
+    # Engine may return a bare list or a dict — handle both shapes defensively
+    if isinstance(result, list):
+        tags_to_remove = result
+    else:
+        tags_to_remove = result.get("tags_to_remove", [])
     if tags_to_remove and char.tags:
         char.tags = [t for t in char.tags if t not in tags_to_remove]
 
