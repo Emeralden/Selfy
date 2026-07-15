@@ -24,7 +24,12 @@ const STAGE_ROUTES: Record<string, string> = {
   "Exam-Prep":  "/exam-prep",
 };
 
-function getPathStage(stage: string): { label: string; icon: string } {
+function getPathStage(stage: string, age?: number): { label: string; icon: string } {
+  if (stage === "School" && age != null) {
+    if (age <= 9)  return { label: "Primary",     icon: "cottage" };
+    if (age <= 12) return { label: "Middle School", icon: "school" };
+    return               { label: "High School",  icon: "domain" };
+  }
   return STAGE_META[stage] ?? { label: "Path", icon: "trending_up" };
 }
 
@@ -334,9 +339,9 @@ export default function Page() {
                   type="button"
                   className="group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all active:scale-95"
                 >
-                  <span className="material-symbols-outlined mb-0.5 text-xl text-savvy">{getPathStage(character?.stage ?? "").icon}</span>
+                  <span className="material-symbols-outlined mb-0.5 text-xl text-savvy">{getPathStage(character?.stage ?? "", character?.age).icon}</span>
                   <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
-                    {getPathStage(character?.stage ?? "").label}
+                    {getPathStage(character?.stage ?? "", character?.age).label}
                   </span>
                 </button>
               </Link>
