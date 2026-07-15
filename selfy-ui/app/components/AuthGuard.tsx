@@ -26,10 +26,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Fetch character to check the alive flag
   const activeCharId = charId ?? user?.active_character_id;
-  const { data: character } = useQuery<any>({
+  const { data: character, isError: isCharacterError } = useQuery<any>({
     queryKey: ["character", activeCharId],
     queryFn: async () => (await apiClient.get(`/character/${activeCharId}`)).data,
     enabled: !!activeCharId && !isPublic,
+    retry: false,
   });
 
   useEffect(() => {
@@ -45,6 +46,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (user.active_character_id) {
       setCharId(user.active_character_id);
 
+      // Character not found (404 or any error) → treat as no character
+      if (isCharacterError) {
+        if (pathname !== "/new-life") router.push("/new-life");
+        return;
+      }
+
       // Dead? Only /death and /new-life are allowed 💀
       if (character && character.alive === false && pathname !== "/death" && pathname !== "/new-life") {
         router.push("/death");
@@ -55,7 +62,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     } else {
       if (pathname !== "/new-life") router.push("/new-life");
     }
-  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character]);
+  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character, isCharacterError]);
 
   if (isPublic) return <>{children}</>;
 
