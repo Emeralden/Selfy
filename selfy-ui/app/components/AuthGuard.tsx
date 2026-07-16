@@ -10,8 +10,10 @@ const PUBLIC_ROUTES = ["/login", "/register", "/death"];
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router    = useRouter();
   const pathname  = usePathname();
-  const setCharId = useCharacterStore((s) => s.setCharId);
-  const charId    = useCharacterStore((s) => s.charId);
+  const setCharId  = useCharacterStore((s) => s.setCharId);
+  const charId     = useCharacterStore((s) => s.charId);
+  const justBorn   = useCharacterStore((s) => s.justBorn);
+  const clearJustBorn = useCharacterStore((s) => s.clearJustBorn);
   const isPublic  = PUBLIC_ROUTES.includes(pathname);
 
   const { data: user, isLoading, isError } = useQuery({
@@ -36,6 +38,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isPublic || isLoading) return;
 
+    // Fresh birth — new-life just created a character and set charId + justBorn.
+    // Skip all redirect logic until authMe cache refreshes with the new character.
+    if (justBorn) {
+      clearJustBorn();
+      return;
+    }
+
     if (isError) {
       router.push("/login");
       return;
@@ -58,11 +67,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (pathname === "/new-life" && character?.alive !== false) router.push("/");
+      // Allow /new-life even when character is alive — user explicitly shelved
+      // their character before navigating here.
     } else {
-      if (pathname !== "/new-life") router.push("/new-life");
+      // No active character — only /new-life and /user are allowed
+      if (pathname !== "/new-life" && pathname !== "/user") router.push("/new-life");
     }
-  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character, isCharacterError]);
+  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character, isCharacterError, justBorn, clearJustBorn]);
 
   if (isPublic) return <>{children}</>;
 

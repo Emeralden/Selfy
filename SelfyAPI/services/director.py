@@ -48,7 +48,7 @@ INSTRUCTIONS:
 
 async def embed_memory(text: str) -> list[float]:
     """Embed a text string using Gemini Embedding 2 and return raw floats."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     response = await loop.run_in_executor(
         None,
         lambda: client.models.embed_content(
@@ -102,7 +102,7 @@ async def generate_scenario(
     context = await recall_trauma(char_id, event_trigger, session)
     prompt = _director_prompt(event_trigger, age, context or "No relevant memories yet.")
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     raw = await loop.run_in_executor(
         None,
         lambda: client.models.generate_content(
@@ -122,7 +122,7 @@ async def generate_eulogy(char_id: UUID, name: str, age: int, session: SessionDe
     
     prompt = _eulogy_prompt(name, age, context or "They did literally nothing of note.")
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     raw = await loop.run_in_executor(
         None,
         lambda: client.models.generate_content(

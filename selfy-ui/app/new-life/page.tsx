@@ -92,6 +92,7 @@ export default function NewLifePage() {
   };
 
   const markJustBorn    = useCharacterStore((s) => s.markJustBorn);
+  const setCharId       = useCharacterStore((s) => s.setCharId);
   const currentCharId   = useCharacterStore((s) => s.charId);
   const queryClient     = useQueryClient();
 
@@ -104,6 +105,9 @@ export default function NewLifePage() {
       // Nuke stale dead-char cache so AuthGuard doesn't bounce us back
       queryClient.removeQueries({ queryKey: ["character", currentCharId] });
       queryClient.invalidateQueries({ queryKey: ["authMe"] });
+      // Clear stale charId first so AuthGuard doesn't use the shelved char
+      // as a fallback while authMe reloads, then immediately set the new one.
+      setCharId("");
       markJustBorn(char.id);
       router.push("/");
     } catch (e: unknown) {

@@ -64,7 +64,7 @@ export default function LoginPage() {
         new URLSearchParams({ username: data.username, password: data.password }),
         { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
       );
-      router.push("/new-life");
+      router.push("/");
     } catch (e: unknown) {
       const detail = (e as any)?.response?.data?.detail;
       setSubmitError(detail ?? (e instanceof Error ? e.message : "Something went wrong."));

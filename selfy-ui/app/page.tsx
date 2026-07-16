@@ -26,9 +26,9 @@ const STAGE_ROUTES: Record<string, string> = {
 
 function getPathStage(stage: string, age?: number): { label: string; icon: string } {
   if (stage === "School" && age != null) {
-    if (age <= 9)  return { label: "Primary",     icon: "cottage" };
+    if (age <= 9)  return { label: "Junior School",     icon: "cottage" };
     if (age <= 12) return { label: "Middle School", icon: "school" };
-    return               { label: "High School",  icon: "domain" };
+    return               { label: "Senior School",  icon: "domain" };
   }
   return STAGE_META[stage] ?? { label: "Path", icon: "trending_up" };
 }
@@ -295,23 +295,29 @@ export default function Page() {
 
           <div className="flex h-36 gap-3 items-stretch">
             <div className="flex w-[30%] flex-col gap-2">
-              <button
-                type="button"
-                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-joy/10 bg-linear-to-b from-joy/5 to-white py-2 shadow-lg shadow-joy/5 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined mb-0.5 text-xl text-joy">favorite</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
-                  Self
-                </span>
-              </button>
+              <Link href="/self" className="flex flex-1">
+                <button
+                  type="button"
+                  className="group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-joy/10 bg-linear-to-b from-joy/5 to-white py-2 shadow-lg shadow-joy/5 transition-all active:scale-95"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center">
+                    <span className="material-symbols-outlined text-xl text-joy">favorite</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
+                    Self
+                  </span>
+                </button>
+              </Link>
 
               <Link href="/social" className="flex flex-1">
                 <button
                   type="button"
-                  className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-appeal/10 bg-linear-to-b from-appeal/5 to-white py-2 shadow-lg shadow-appeal/5 transition-all active:scale-95"
+                  className="group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-appeal/10 bg-linear-to-b from-appeal/5 to-white py-2 shadow-lg shadow-appeal/5 transition-all active:scale-95"
                 >
-                  <span className="material-symbols-outlined mb-0.5 text-xl text-appeal">group</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                  <div className="flex h-8 w-8 items-center justify-center">
+                    <span className="material-symbols-outlined text-xl text-appeal">group</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
                     Social
                   </span>
                 </button>
@@ -334,24 +340,39 @@ export default function Page() {
             </div>
 
             <div className="flex w-[30%] flex-col gap-2">
-              <Link href={getStageRoute(character?.stage ?? "")} className="flex flex-1">
-                <button
-                  type="button"
-                  className="group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all active:scale-95"
-                >
-                  <span className="material-symbols-outlined mb-0.5 text-xl text-savvy">{getPathStage(character?.stage ?? "", character?.age).icon}</span>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
-                    {getPathStage(character?.stage ?? "", character?.age).label}
-                  </span>
-                </button>
-              </Link>
+              {(() => {
+                const stageRoute = getStageRoute(character?.stage ?? "");
+                const hasRoute   = stageRoute !== "#";
+                const btn = (
+                  <button
+                    type="button"
+                    className={`group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all${hasRoute ? " active:scale-95" : " cursor-default"}`}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center">
+                      <span className="material-symbols-outlined text-xl text-savvy">{getPathStage(character?.stage ?? "", character?.age).icon}</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      {getPathStage(character?.stage ?? "", character?.age).label.split(" ").map((word, i) => (
+                        <span key={i} className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                );
+                return hasRoute
+                  ? <Link href={stageRoute} className="flex flex-1">{btn}</Link>
+                  : <div className="flex flex-1">{btn}</div>;
+              })()}
 
               <button
                 type="button"
                 className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-mind/10 bg-linear-to-b from-mind/5 to-white py-2 shadow-lg shadow-mind/5 transition-all active:scale-95"
               >
-                <span className="material-symbols-outlined mb-0.5 text-xl text-mind">casino</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">
+                <div className="flex h-8 w-8 items-center justify-center">
+                  <span className="material-symbols-outlined text-xl text-mind">casino</span>
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
                   Lifestyle
                 </span>
               </button>

@@ -17,6 +17,14 @@ class Sexuality(str, Enum):
     QUESTIONING = "Questioning"
 
 
+class MaritalStatus(str, Enum):
+    SINGLE = "Single"
+    RELATIONSHIP = "Relationship"
+    MARRIED = "Married"
+    DIVORCED = "Divorced"
+    WIDOWED = "Widowed"
+
+
 class Gender(str, Enum):
     MALE = "Male"
     FEMALE = "Female"
@@ -74,6 +82,13 @@ class Character(SQLModel, table=True):
     savvy: int = Field(default=25)
 
     sexuality: Sexuality = Field(default=Sexuality.STRAIGHT)
+    marital_status: MaritalStatus = Field(
+        default=MaritalStatus.SINGLE,
+        sa_column=Column(
+            sa.Enum(MaritalStatus, values_callable=lambda x: [e.value for e in x]),
+            nullable=False,
+        ),
+    )
     fertility: int = Field(default=80)
     immunity: int = Field(default=70)
 
@@ -89,8 +104,6 @@ class Character(SQLModel, table=True):
     grades: int = Field(default=50)
 
     tags: List[str] = Field(default=[], sa_column=Column(JSON))
-
-    avatar_dna: dict = Field(default={}, sa_column=Column(JSON))
 
     class Config:
         from_attributes = True

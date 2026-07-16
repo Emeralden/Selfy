@@ -6,6 +6,8 @@ from SelfyAPI import database
 from SelfyAPI.cache import redis_client
 from SelfyAPI.dependencies import RedisDep
 from SelfyAPI.routers import auth, pre_school, life, social, character, school, exam_prep
+from SelfyAPI.routers import self as self_router
+from SelfyAPI.services.engine import client as engine
 
 import SelfyAPI.services.aging
 import SelfyAPI.services.cleanup
@@ -20,7 +22,11 @@ async def lifespan(app: FastAPI):
         print("Connected to Redis")
     except Exception as e:
         print(f"Failed to connect to Redis: {e}")
+    await engine.startup()
+    print("Engine HTTP client ready")
     yield
+    await engine.shutdown()
+    print("Engine HTTP client closed")
 
 
 app = FastAPI(title="Selfy",
@@ -47,6 +53,7 @@ async def ping_redis(redis: RedisDep):
     value = await redis.get("redis")
     return {"redis": value}
 
+app.include_router(self_router.router, tags=["Self"])
 app.include_router(life.router,      tags=["Lifecycle"])
 app.include_router(social.router,    tags=["Social"])
 app.include_router(pre_school.router, tags=["Pre-School"])
