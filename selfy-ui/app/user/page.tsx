@@ -190,10 +190,10 @@ export default function UserPage() {
                 </div>
                 <div className="flex flex-col items-end gap-0.5">
                   <span className="text-[18px] font-black tracking-tight text-primary">
-                    ₹{character.money}
+                    ₹{character.cash}
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50">
-                    Balance
+                    Cash
                   </span>
                 </div>
               </div>
@@ -267,6 +267,24 @@ export default function UserPage() {
               </span>
             </Link>
 
+            {/* Cemetery */}
+            <Link
+              href="/user/cemetery"
+              className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-slate-50/60"
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[20px]" style={{ color: PRIMARY }}>
+                  deceased
+                </span>
+                <div className="flex flex-col items-start">
+                  <span className="text-[14px] font-black text-on-surface">Cemetery</span>
+                  <span className="text-[11px] text-on-surface-variant/60">Remember your fallen characters</span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-[18px] text-on-surface-variant/30">
+                chevron_right
+              </span>
+            </Link>
           </div>
         </div>
 

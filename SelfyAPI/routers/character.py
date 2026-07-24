@@ -10,8 +10,27 @@ from ..dependencies import SessionDep, UserDep
 from ..models.character import Character
 from ..models.event import LifeEvent
 from ..schemas.event import LifeEventRead
+from .finance import get_net_worth
+
+from pydantic import BaseModel
+
+class AvatarUpdate(BaseModel):
+    avatar_url: str
 
 router = APIRouter(prefix="/character")
+
+@router.patch("/{char_id}/avatar")
+async def update_avatar(char_id: uuid.UUID, body: AvatarUpdate, session: SessionDep, user: UserDep):
+    char = session.get(Character, char_id)
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found.")
+    if char.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your character.")
+    
+    char.avatar_url = body.avatar_url
+    session.add(char)
+    session.commit()
+    return {"message": "Avatar updated successfully", "avatar_url": char.avatar_url}
 
 
 # ── Must be defined BEFORE /{char_id} routes so FastAPI doesn't
@@ -42,6 +61,20 @@ async def get_saved_characters(session: SessionDep, user: UserDep):
     )
     saved = session.exec(query).all()
     return saved
+
+
+@router.get("/cemetery", response_model=List[Character])
+async def get_cemetery_characters(session: SessionDep, user: UserDep):
+    """Return all deceased characters belonging to this user."""
+    query = (
+        select(Character)
+        .where(
+            Character.user_id == user.id,
+            Character.alive == False,
+        )
+    )
+    cemetery = session.exec(query).all()
+    return cemetery
 
 
 @router.post("/{char_id}/resume")
@@ -108,6 +141,14 @@ async def get_char(char_id: uuid.UUID, session: SessionDep):
     if not char:
         raise HTTPException(status_code=404, detail="Character not found.")
     return char
+
+
+@router.get("/{char_id}/net-worth")
+async def get_character_net_worth(char_id: uuid.UUID, session: SessionDep):
+    char = session.get(Character, char_id)
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found.")
+    return {"net_worth": get_net_worth(char)}
 
 
 @router.get("/{char_id}/events", response_model=List[LifeEventRead])

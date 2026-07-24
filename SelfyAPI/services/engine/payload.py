@@ -18,11 +18,15 @@ def char_state(char: Character) -> dict:
         "sociability": char.sociability,
         "karma":       char.karma,
         "grades":      char.grades,
-        "money":       char.money,
+        "cash":       char.cash,
         "fertility":   char.fertility,
         "tags":        list(char.tags or []),
         "country":     char.country,
+        "state":       char.state,
         "stage":       char.stage.value if char.stage else "Baby",
+        "gender":      char.gender.value if char.gender else "Male",
+        "first_name":  char.first_name,
+        "id":          str(char.id) if char.id else "",
     }
 
 

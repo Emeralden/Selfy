@@ -7,7 +7,7 @@ export default function Header() {
         
         <Link href="/user">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 transition-opacity hover:opacity-70 active:scale-95">
-            <span className="material-symbols-outlined text-[18px] text-slate-500">person</span>
+            <span className="material-symbols-outlined text-[18px] text-primary">density_medium</span>
           </div>
         </Link>
 
@@ -15,9 +15,12 @@ export default function Header() {
           <span className="brand-text inline-block text-primary antialiased">selfy</span>
         </Link>
 
-        <div className="cursor-pointer text-primary transition-opacity hover:opacity-80">
+        <Link
+          href="/finances"
+          className="text-primary transition-opacity hover:opacity-80 active:scale-95"
+        >
           <span className="material-symbols-outlined text-[24px]">account_balance_wallet</span>
-        </div>
+        </Link>
 
       </div>
     </header>

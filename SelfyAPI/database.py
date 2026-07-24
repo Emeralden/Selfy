@@ -4,6 +4,7 @@ from .config import settings
 from .models.user import User
 from .models.character import Character
 from .models.event import LifeEvent
+from .models.finances import Asset, Debt, Investment
 from .models.npc import NPC
 
 engine = sqlmodel.create_engine(

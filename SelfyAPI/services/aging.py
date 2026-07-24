@@ -2,6 +2,7 @@
 from SelfyAPI.dependencies import SessionDep
 from SelfyAPI.models.character import Character, Stage
 from SelfyAPI.models.npc import NPC
+from SelfyAPI.models.user import User
 from SelfyAPI.services.director import generate_eulogy
 from SelfyAPI.services.engine.dispatcher import subscribe_age_up
 from SelfyAPI.services.engine import client as engine
@@ -22,6 +23,15 @@ async def process_school(char, session, redis, bg_tasks, log_memory):
 async def process_base_aging(char, session, redis, bg_tasks, log_memory):
     char.age += 1
     log_memory(f"I am now {char.age} years old.")
+
+@subscribe_age_up(priority=15)
+async def process_avatar_aging(char, session, redis, bg_tasks, log_memory):
+    """Regenerate avatar every year to reflect dynamic facial expressions."""
+    from SelfyAPI.services.engine.payload import char_state
+    result = await engine.resolve("script.avatar", char_state(char))
+    if result.get("avatar_url"):
+        char.avatar_url = result["avatar_url"]
+
 
     # Ask engine which stage this age maps to + what lifecycle events to fire
     result = await engine.resolve("script.stage", char_state(char))
@@ -68,6 +78,9 @@ async def process_reaper(char, session, redis, bg_tasks, log_memory):
     result = await engine.resolve("script.death", char_state(char))
     if result.get("died"):
         char.alive = False
+        user = session.get(User, char.user_id)
+        if user and user.active_character_id == char.id:
+            user.active_character_id = None
 
 
 @subscribe_age_up(priority=999)

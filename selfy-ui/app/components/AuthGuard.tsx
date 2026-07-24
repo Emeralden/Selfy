@@ -38,12 +38,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isPublic || isLoading) return;
 
-    // Fresh birth — new-life just created a character and set charId + justBorn.
-    // Skip all redirect logic until authMe cache refreshes with the new character.
-    if (justBorn) {
-      clearJustBorn();
-      return;
-    }
+
 
     if (isError) {
       router.push("/login");
@@ -52,8 +47,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!user) return;
 
-    if (user.active_character_id) {
-      setCharId(user.active_character_id);
+    if (activeCharId) {
+      setCharId(activeCharId);
 
       // Character not found (404 or any error) → treat as no character
       if (isCharacterError) {
@@ -73,7 +68,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       // No active character — only /new-life and /user are allowed
       if (pathname !== "/new-life" && pathname !== "/user") router.push("/new-life");
     }
-  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character, isCharacterError, justBorn, clearJustBorn]);
+  }, [user, isLoading, isError, isPublic, pathname, router, setCharId, character, isCharacterError, justBorn, clearJustBorn, activeCharId]);
 
   if (isPublic) return <>{children}</>;
 

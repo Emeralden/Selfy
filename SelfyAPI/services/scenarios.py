@@ -36,7 +36,7 @@ async def process_random_events(char, session, redis, bg_tasks, log_memory):
     raw_event = result.get("event")
 
     if not raw_event:
-        return
+        return None
 
     # Normalize into the shape enrich_event expects
     event = {
@@ -46,7 +46,33 @@ async def process_random_events(char, session, redis, bg_tasks, log_memory):
         "title":     raw_event.get("id", ""),
         "choices":   raw_event.get("choices", []),
         "tone":      raw_event.get("tone", "neutral"),
+        "icon":      raw_event.get("icon", "auto_awesome")
     }
 
     await enrich_event(event, event["tone"], redis, bg_tasks)
     log_memory(event["text_base"])
+    return event
+
+
+@subscribe_age_up(priority=45)
+async def process_scripted_events(char, session, redis, bg_tasks, log_memory):
+    """Check for and trigger age-specific scripted events."""
+    result = await engine.resolve("script.events", char_state(char))
+    raw_event = result.get("event")
+
+    if not raw_event:
+        return None
+
+    event = {
+        "id":        raw_event["id"],
+        "version":   "1.0",
+        "text_base": raw_event.get("text", ""),
+        "title":     raw_event.get("title", ""),
+        "choices":   raw_event.get("choices", []),
+        "tone":      raw_event.get("tone", "neutral"),
+        "icon":      raw_event.get("icon", "event")
+    }
+
+    await enrich_event(event, event["tone"], redis, bg_tasks)
+    log_memory(event["text_base"])
+    return event

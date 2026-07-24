@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from .finances import Asset, Debt, Investment
     from .npc import NPC
 
 
@@ -73,7 +74,20 @@ class Character(SQLModel, table=True):
         ),
     )
     alive: bool = Field(default=True)
-    money: int = Field(default=0)
+    cash: int = Field(default=0, nullable=False)
+
+    investments: list["Investment"] = Relationship(
+        back_populates="character",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    assets: list["Asset"] = Relationship(
+        back_populates="character",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    debts: list["Debt"] = Relationship(
+        back_populates="character",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
     body: int = Field(default=65)
     mind: int = Field(default=35)
@@ -102,6 +116,8 @@ class Character(SQLModel, table=True):
     )
 
     grades: int = Field(default=50)
+
+    avatar_url: str | None = Field(default=None)
 
     tags: List[str] = Field(default=[], sa_column=Column(JSON))
 

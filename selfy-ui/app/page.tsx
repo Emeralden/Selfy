@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "./components/Header";
 import { useCharacterStore } from "./store/useCharacterStore";
 import { apiClient } from "@/lib/apiClient";
+import { usePopupStore } from "./store/usePopupStore";
 
 
 const STAGE_META: Record<string, { label: string; icon: string }> = {
@@ -22,6 +23,7 @@ const STAGE_ROUTES: Record<string, string> = {
   "Pre-School": "/pre-school",
   "School":     "/school",
   "Exam-Prep":  "/exam-prep",
+  "University": "/university",
 };
 
 function getPathStage(stage: string, age?: number): { label: string; icon: string } {
@@ -52,7 +54,6 @@ export default function Page() {
 
   useEffect(() => {
     if (justBorn) {
-      new Audio("/sounds/baby-cry.mp3").play().catch(() => {});
       clearJustBorn();
     }
   }, [justBorn, clearJustBorn]);
@@ -96,9 +97,13 @@ export default function Page() {
       const res = await apiClient.patch(`/life/${character.id}/age_up`);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['character', CHAR_ID] });
       queryClient.invalidateQueries({ queryKey: ['events', CHAR_ID] });
+      
+      if (data.scenarios && data.scenarios.length > 0) {
+         usePopupStore.getState().enqueueScenarios(data.scenarios);
+      }
     },
   });
 
@@ -121,9 +126,14 @@ export default function Page() {
 
       <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <span className="material-symbols-outlined text-xl text-primary">account_circle</span>
-          </div>
+          <Link href="/avatar" className="flex h-12 w-12 overflow-hidden items-center justify-center rounded-xl bg-white transition-transform active:scale-95 border border-primary/20 shadow-sm shrink-0">
+            {character.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={character.avatar_url} alt="Avatar" className="h-full w-full object-contain scale-[1.23] translate-y-[0.5rem]" />
+            ) : (
+              <span className="material-symbols-outlined text-2xl text-primary">account_circle</span>
+            )}
+          </Link>
           <div className="flex flex-col">
             <span className="text-xl font-extrabold leading-tight tracking-tight text-on-surface">
               {`${character.first_name} ${character.last_name}`}
@@ -135,12 +145,12 @@ export default function Page() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 text-right">
+          <Link href="/finances" className="flex items-center gap-3 text-right transition-opacity hover:opacity-80 active:scale-95">
             <div className="h-4 w-px bg-outline-variant" />
             <span className="text-xl font-black tracking-tight text-primary">
-              {`₹${character.money}`}
+              {`₹${character.cash}`}
             </span>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -315,7 +325,7 @@ export default function Page() {
                   className="group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-appeal/10 bg-linear-to-b from-appeal/5 to-white py-2 shadow-lg shadow-appeal/5 transition-all active:scale-95"
                 >
                   <div className="flex h-8 w-8 items-center justify-center">
-                    <span className="material-symbols-outlined text-xl text-appeal">group</span>
+                    <span className="material-symbols-outlined text-xl text-appeal">diversity_1</span>
                   </div>
                   <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
                     Social
@@ -365,17 +375,19 @@ export default function Page() {
                   : <div className="flex flex-1">{btn}</div>;
               })()}
 
-              <button
-                type="button"
-                className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-mind/10 bg-linear-to-b from-mind/5 to-white py-2 shadow-lg shadow-mind/5 transition-all active:scale-95"
-              >
-                <div className="flex h-8 w-8 items-center justify-center">
-                  <span className="material-symbols-outlined text-xl text-mind">casino</span>
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
-                  Lifestyle
-                </span>
-              </button>
+              <Link href="/lifestyle" className="flex flex-1">
+                <button
+                  type="button"
+                  className="group flex-1 flex flex-col items-center justify-center rounded-2xl border border-mind/10 bg-linear-to-b from-mind/5 to-white py-2 shadow-lg shadow-mind/5 transition-all active:scale-95"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center">
+                    <span className="material-symbols-outlined text-xl text-mind">casino</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
+                    Lifestyle
+                  </span>
+                </button>
+              </Link>
             </div>
           </div>
         </div>

@@ -19,10 +19,14 @@ def subscribe_age_up(priority: int = 10):
     return decorator
 
 async def emit_age_up(char, session, redis, bg_tasks, log_memory):
+    results = []
     for handler in AGE_UP_HANDLERS:
         if not char.alive and handler.priority < 900:
             continue 
         if inspect.iscoroutinefunction(handler.func):
-            await handler.func(char, session, redis, bg_tasks, log_memory)
+            res = await handler.func(char, session, redis, bg_tasks, log_memory)
         else:
-            handler.func(char, session, redis, bg_tasks, log_memory)
+            res = handler.func(char, session, redis, bg_tasks, log_memory)
+        if res:
+            results.append(res)
+    return results

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { usePopupStore } from "@/app/store/usePopupStore";
 import { apiClient } from "@/lib/apiClient";
 import type { ChoiceAction } from "@/app/components/ChoicePicker";
@@ -21,10 +22,15 @@ interface ActionResult {
   body: string;
 }
 
+interface ActionErrorBody {
+  detail?: string;
+}
+
 interface UseActionHandlerOptions {
   /** Phase slug — matches the backend route prefix e.g. "self", "school", "exam-prep" */
   phase: string;
   charId: string;
+  extraParams?: Record<string, string>;
   /** Material Symbols icon shown in the success popup */
   popupIcon?: string;
   /** Extra invalidation query keys beyond ["character", charId] */
@@ -36,6 +42,7 @@ interface UseActionHandlerOptions {
 export function useActionHandler({
   phase,
   charId,
+  extraParams = {},
   popupIcon = "auto_awesome",
   extraInvalidate = [],
   onSuccess,
@@ -53,6 +60,7 @@ export function useActionHandler({
         await apiClient.get(`/${phase}/${charId}/action`, {
           params: {
             action_name: actionId,
+            ...extraParams,
             ...(outcome ? { outcome } : {}),
           },
         })
@@ -67,9 +75,10 @@ export function useActionHandler({
       onSuccess?.(data);
     },
 
-    onError: (err: any) => {
+    onError: (err: Error) => {
+      const axiosError = err as AxiosError<ActionErrorBody>;
       showPopup(
-        err?.response?.data?.detail ?? "Something went wrong.",
+        axiosError.response?.data?.detail ?? "Something went wrong.",
         "Oops!",
         "error"
       );

@@ -2,8 +2,9 @@
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "../components/Header";
+import ChoicePicker from "../components/ChoicePicker";
 import { useCharacterStore } from "../store/useCharacterStore";
-import { usePopupStore } from "../store/usePopupStore";
+import { useActionHandler, type PhaseAction } from "@/lib/useActionHandler";
 import { apiClient } from "@/lib/apiClient";
 
 // ── Theme map ─────────────────────────────────────────────────────────────────
@@ -23,20 +24,10 @@ function getAIR(grades: number, mind: number, discipline: number): {
   return             { air: "Undetermined", label: "Need Help 🆘",    color: "#991B1B", stress: 100 };
 }
 
-// ── Action type ───────────────────────────────────────────────────────────────
-type ExamAction = {
-  id: string;
-  label: string;
-  description: string;
-  emoji: string;
-  theme: string;
-};
 
-type ActionResult = { title: string; body: string };
 
 export default function ExamPrepPage() {
   const charId      = useCharacterStore((s) => s.charId) ?? "";
-  const showPopup   = usePopupStore((s) => s.showPopup);
   const queryClient = useQueryClient();
 
   // ── Character ──────────────────────────────────────────────────────────────
@@ -46,25 +37,23 @@ export default function ExamPrepPage() {
     enabled: !!charId,
   });
 
-  // ── Age-specific actions ───────────────────────────────────────────────────
-  const { data: ageActions = [] } = useQuery<ExamAction[]>({
+  // ── Age-specific actions ────────────────────────────────────────────────────
+  const { data: ageActions = [] } = useQuery<PhaseAction[]>({
     queryKey: ["exam-actions", charId, character?.age],
     queryFn: async () => (await apiClient.get(`/exam-prep/${charId}/actions`)).data,
     enabled: !!charId && character?.age != null,
   });
 
-  // ── Action mutation ────────────────────────────────────────────────────────
-  const actionMutation = useMutation<ActionResult, Error, string>({
-    mutationFn: async (actionName: string) =>
-      (await apiClient.get(`/exam-prep/${charId}/action`, { params: { action_name: actionName } })).data,
-    onSuccess: (data) => {
-      showPopup(data.body, data.title, "school");
-      queryClient.invalidateQueries({ queryKey: ["character", charId] });
-      queryClient.invalidateQueries({ queryKey: ["exam-actions", charId] });
-    },
-  });
+  // ── Action handler (static / dynamic / choice) ──────────────────────────
+  const { handleAction, pickOutcome, dismissChoice, pendingChoice, isPending } =
+    useActionHandler({
+      phase:           "exam-prep",
+      charId,
+      popupIcon:       "menu_book",
+      extraInvalidate: [["exam-actions", charId]],
+    });
 
-  // ── Leave coaching mutation ────────────────────────────────────────────────
+  // ── Leave coaching (DELETE — not an action, stays as useMutation) ─────────
   const leaveCoachingMutation = useMutation({
     mutationFn: async () =>
       (await apiClient.delete(`/exam-prep/${charId}/coaching`)).data,
@@ -83,6 +72,14 @@ export default function ExamPrepPage() {
 
   return (
     <>
+      {pendingChoice && (
+        <ChoicePicker
+          action={pendingChoice}
+          onPick={pickOutcome}
+          onClose={dismissChoice}
+          isLoading={isPending}
+        />
+      )}
       <div className="flex h-dvh flex-col overflow-hidden bg-[#FAFBFF]">
         <Header />
 
@@ -261,8 +258,8 @@ export default function ExamPrepPage() {
                     key={action.id}
                     id={`exam-age-${action.id}`}
                     type="button"
-                    onClick={() => actionMutation.mutate(action.id)}
-                    disabled={actionMutation.isPending}
+                    onClick={() => handleAction(action)}
+                    disabled={isPending}
                     className="group flex w-full items-center gap-4 overflow-hidden rounded-3xl px-4 py-4 transition-all duration-200 active:scale-[0.98] disabled:opacity-60"
                     style={{
                       background: t.bg,

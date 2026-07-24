@@ -5,34 +5,24 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from SelfyAPI.dependencies import RedisDep, SessionDep
 from SelfyAPI.models.character import Character
 from SelfyAPI.models.event import LifeEvent
-from SelfyAPI.models.npc import NPC
 from SelfyAPI.services.director import embed_and_save
 from SelfyAPI.services.engine import client as engine
-from SelfyAPI.services.engine.payload import (
-    apply_npc_changes,
-    apply_stat_changes,
-    char_state,
-    npc_state,
-)
+from SelfyAPI.services.engine.payload import char_state, apply_stat_changes
 from SelfyAPI.services.rate_limiter import within_limit
 from SelfyAPI.services.scenarios import enrich_event
 
-router = APIRouter(prefix="/social")
+router = APIRouter(prefix="/university")
 
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/{char_id}/actions")
-async def get_actions(char_id: uuid.UUID, session: SessionDep, npc_id: uuid.UUID | None = None):
+async def get_actions(char_id: uuid.UUID, session: SessionDep):
     char = session.get(Character, char_id)
     if not char:
         raise HTTPException(status_code=404, detail="Character not found.")
-
-    if npc_id:
-        npc = session.get(NPC, npc_id)
-        if not npc or npc.char_id != char_id:
-            raise HTTPException(status_code=404, detail="NPC not found.")
-
     return await engine.resolve("action.available", {
-        "phase": "social",
+        "phase": "university",
         "age":   char.age,
         "tags":  list(char.tags or []),
     })
@@ -42,23 +32,18 @@ async def get_actions(char_id: uuid.UUID, session: SessionDep, npc_id: uuid.UUID
 async def do_action(
     char_id: uuid.UUID,
     action_name: str,
-    npc_id: uuid.UUID,
     session: SessionDep,
     redis: RedisDep,
     bg_tasks: BackgroundTasks,
+    outcome: str | None = None,
 ):
     char = session.get(Character, char_id)
     if not char:
         raise HTTPException(status_code=404, detail="Character not found.")
-    if not char.alive:
-        raise HTTPException(status_code=400, detail="Character already dead.")
 
-    npc = session.get(NPC, npc_id)
-    if not npc or npc.char_id != char_id:
-        raise HTTPException(status_code=404, detail="NPC not found.")
-
+    # 1. Validate action is available for this age/tags
     available = await engine.resolve("action.available", {
-        "phase": "social",
+        "phase": "university",
         "age":   char.age,
         "tags":  list(char.tags or []),
     })
@@ -66,36 +51,40 @@ async def do_action(
     if not action_meta:
         raise HTTPException(status_code=403, detail="Action not available.")
 
-    limit_key = f"social:{npc_id}:{action_name}"
-    stats_apply = await within_limit(redis, char_id, char.age, limit_key, action_meta["yearly_limit"])
+    # 2. Rate-limit (API concern)
+    stats_apply = await within_limit(redis, char_id, char.age, action_name, action_meta["yearly_limit"])
 
-    result = await engine.resolve("social.resolve", {
-        "action": action_name,
-        "char":   char_state(char),
-        "npc":    npc_state(npc),
+    # 3. Resolve in engine
+    result = await engine.resolve("action.resolve", {
+        "phase":          "university",
+        "action_id":      action_name,
+        "outcome_choice": outcome,
+        "state":          char_state(char),
     })
 
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
 
+    # 4. Apply stat changes + tags (only if within rate limit)
     if stats_apply:
         apply_stat_changes(char, result.get("stat_changes", {}))
-        apply_npc_changes(npc, result.get("npc_changes", {}))
+        for tag in result.get("tags_granted", []):
+            if tag not in (char.tags or []):
+                char.tags = list(char.tags or []) + [tag]
 
-    title = action_meta.get("label", "Social")
-    text = result.get("text", "")
+    # 5. LLM enrichment
     event = {
         "id":        action_name,
         "version":   "1.0",
-        "text_base": text,
-        "title":     title,
+        "text_base": result.get("text", ""),
+        "title":     result.get("title", ""),
     }
-    await enrich_event(event, "social", redis, bg_tasks)
+    await enrich_event(event, result.get("tone", "neutral"), redis, bg_tasks)
 
-    log_entry = LifeEvent(char_id=char_id, age=char.age, text=text)
+    # 6. Log + persist
+    log_entry = LifeEvent(char_id=char_id, age=char.age, text=result.get("text", ""))
     session.add(log_entry)
     session.add(char)
-    session.add(npc)
     session.commit()
     session.refresh(log_entry)
     bg_tasks.add_task(embed_and_save, log_entry.id)

@@ -109,7 +109,7 @@ export default function NewLifePage() {
       // as a fallback while authMe reloads, then immediately set the new one.
       setCharId("");
       markJustBorn(char.id);
-      router.push("/");
+      window.location.href = "/";
     } catch (e: unknown) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -278,7 +278,7 @@ export default function NewLifePage() {
                 <input
                   id="first-name"
                   type="text"
-                  placeholder="e.g. Arun"
+                  placeholder="e.g. Nithya"
                   className={inputCls}
                   {...register("first_name")}
                 />

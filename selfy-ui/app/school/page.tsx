@@ -1,13 +1,11 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "../components/Header";
+import ChoicePicker from "../components/ChoicePicker";
 import { useCharacterStore } from "../store/useCharacterStore";
-import { usePopupStore } from "../store/usePopupStore";
+import { useActionHandler, type PhaseAction } from "@/lib/useActionHandler";
 import { apiClient } from "@/lib/apiClient";
-
-// ── Theme map: backend sends a theme slug, we own the CSS ────────────────
 import { THEME_MAP, DEFAULT_THEME } from "@/lib/themeMap";
 
 
@@ -73,16 +71,7 @@ const SOCIAL_PILLS = [
   { id: "teachers",   label: "Teachers",   emoji: "🎓" },
 ];
 
-// ── Age-action API shape ──────────────────────────────────────────────────
-type SchoolAction = {
-  id: string;
-  label: string;
-  description: string;
-  emoji: string;
-  theme: string;
-};
 
-type ActionResult = { title: string; body: string };
 
 export default function SchoolPage() {
   const charId = useCharacterStore((s) => s.charId) ?? "";
@@ -95,27 +84,23 @@ export default function SchoolPage() {
   });
 
   // ── Age-specific actions from backend ───────────────────────────────────
-  const { data: ageActions = [] } = useQuery<SchoolAction[]>({
+  const { data: ageActions = [] } = useQuery<PhaseAction[]>({
     queryKey: ["school-actions", charId, character?.age],
     queryFn: async () => (await apiClient.get(`/school/${charId}/actions`)).data,
     enabled: !!charId && character?.age != null,
   });
 
-  // ── Action mutation ─────────────────────────────────────────────────────
-  const showPopup   = usePopupStore((s) => s.showPopup);
+  // ── Action handler (static / dynamic / choice) ──────────────────────────
+  const { handleAction, pickOutcome, dismissChoice, pendingChoice, isPending } =
+    useActionHandler({
+      phase:           "school",
+      charId,
+      popupIcon:       "school",
+      extraInvalidate: [["school-actions", charId]],
+    });
+
+  // ── Leave tuition (DELETE — not an action, stays as useMutation) ────────
   const queryClient = useQueryClient();
-
-  const actionMutation = useMutation<ActionResult, Error, string>({
-    mutationFn: async (actionName: string) =>
-      (await apiClient.get(`/school/${charId}/action`, { params: { action_name: actionName } })).data,
-    onSuccess: (data) => {
-      showPopup(data.body, data.title, "school");
-      // Re-fetch character so tags update (monitor win, tuition join etc.)
-      queryClient.invalidateQueries({ queryKey: ["character", charId] });
-      queryClient.invalidateQueries({ queryKey: ["school-actions", charId] });
-    },
-  });
-
   const leaveTuitionMutation = useMutation({
     mutationFn: async () =>
       (await apiClient.delete(`/school/${charId}/tuition`)).data,
@@ -131,6 +116,14 @@ export default function SchoolPage() {
 
   return (
     <>
+      {pendingChoice && (
+        <ChoicePicker
+          action={pendingChoice}
+          onPick={pickOutcome}
+          onClose={dismissChoice}
+          isLoading={isPending}
+        />
+      )}
 
       <div className="flex h-dvh flex-col overflow-hidden bg-[#FAFBFF]">
         <Header />
@@ -294,8 +287,8 @@ export default function SchoolPage() {
                 const t = THEME_MAP[action.theme] ?? DEFAULT_THEME;
                 return (
                   <button key={action.id} id={`school-age-${action.id}`} type="button"
-                    onClick={() => actionMutation.mutate(action.id)}
-                    disabled={actionMutation.isPending}
+                    onClick={() => handleAction(action)}
+                    disabled={isPending}
                     className="group flex w-full items-center gap-4 overflow-hidden rounded-3xl px-4 py-4 transition-all duration-200 active:scale-[0.98] disabled:opacity-60"
                     style={{ background: t.bg, boxShadow: `0 4px 20px -4px ${t.glow}, inset 0 1px 0 rgba(255,255,255,0.8)`, border: `1.5px solid ${t.color}22` }}>
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl transition-transform duration-200 group-hover:scale-110 group-active:scale-90"

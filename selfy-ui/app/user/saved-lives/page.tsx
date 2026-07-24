@@ -173,10 +173,10 @@ export default function SavedLivesPage() {
                     </div>
                   </div>
 
-                  {/* Money + actions */}
+                  {/* Cash + actions */}
                   <div className="flex flex-col items-end gap-2">
                     <span className="text-[15px] font-black tracking-tight text-primary">
-                      ₹{char.money}
+                      ₹{char.cash}
                     </span>
                     <div className="flex items-center gap-2">
 

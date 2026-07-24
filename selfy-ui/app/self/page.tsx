@@ -166,72 +166,83 @@ export default function SelfPage() {
               style={{ background: blob2 }}
             />
 
-            {/* ── Top row: Avatar + Name + pills ── */}
-            <div className="relative z-10 flex items-center gap-4">
-
-              {/* Avatar placeholder */}
-              <div
-                className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl"
-                style={frosted}
-              >
+            {/* ── Identity header ── */}
+            <div className="relative z-10 flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 pt-1">
                 <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: "3rem", color: "rgba(255,255,255,0.45)" }}
+                  className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-black text-white"
+                  style={frosted}
                 >
-                  account_circle
+                  <span className="material-symbols-outlined text-[12px]">{getStageIcon(character.stage)}</span>
+                  {character.stage}
                 </span>
-              </div>
 
-              {/* Name + identity pills */}
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <h2
-                  className="truncate text-[22px] font-black tracking-tight text-white"
+                  className="mt-2 text-[24px] font-black leading-tight tracking-tight text-white"
                   style={{ textShadow: "0 2px 10px rgba(0,0,0,0.2)" }}
                 >
                   {character.first_name} {character.last_name}
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    className="rounded-lg px-2.5 py-0.5 text-[11px] font-black text-white"
+                {location && (
+                  <div
+                    className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-xl px-3 py-1"
                     style={frosted}
                   >
-                    Age {character.age}
-                  </span>
-                  <span
-                    className="rounded-lg px-2.5 py-0.5 text-[11px] font-black text-white"
-                    style={frosted}
-                  >
-                    {genderEmoji} {character.gender}
-                  </span>
-                  <span
-                    className="flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-black text-white"
-                    style={frosted}
-                  >
-                    <span className="material-symbols-outlined text-[12px]">{getStageIcon(character.stage)}</span>
-                    {character.stage}
-                  </span>
+                    <span className="material-symbols-outlined text-[13px] text-white/70">location_on</span>
+                    <span className="truncate text-[12px] font-semibold text-white/80">{location}</span>
+                  </div>
+                )}
+              </div>
 
-                  {showMarital && (
-                    <span
-                      className="flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-black text-white"
-                      style={frosted}
-                    >
-                      <span className="material-symbols-outlined text-[12px]">{maritalIcon(character.marital_status)}</span>
-                      {character.marital_status}
-                    </span>
-                  )}
-                </div>
+              {/* Avatar portrait */}
+              <div
+                className="relative flex h-32 w-24 shrink-0 overflow-hidden items-center justify-center rounded-2xl sm:h-36 sm:w-28"
+                style={frosted}
+              >
+                {character.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img 
+                    src={character.avatar_url} 
+                    alt="Avatar" 
+                    className="absolute h-full w-full object-cover scale-[1] translate-y-[0.2rem]" 
+                  />
+                ) : (
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "3rem", color: "rgba(255,255,255,0.45)" }}
+                  >
+                    account_circle
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* ── Location ── */}
-            {location && (
-              <div className="relative z-10 mt-3 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[13px] text-white/50">location_on</span>
-                <span className="text-[12px] font-semibold text-white/55">{location}</span>
-              </div>
-            )}
+            {/* ── Identity chips ── */}
+            <div className="relative z-10 mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <span
+                className="rounded-xl px-3 py-1.5 text-center text-[11px] font-black text-white"
+                style={frosted}
+              >
+                Age {character.age}
+              </span>
+              <span
+                className="rounded-xl px-3 py-1.5 text-center text-[11px] font-black text-white"
+                style={frosted}
+              >
+                {genderEmoji} {character.gender}
+              </span>
+
+              {showMarital && (
+                <span
+                  className="col-span-2 flex items-center justify-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-black text-white sm:col-span-1"
+                  style={frosted}
+                >
+                  <span className="material-symbols-outlined text-[12px]">{maritalIcon(character.marital_status)}</span>
+                  {character.marital_status}
+                </span>
+              )}
+            </div>
 
 
           </div>

@@ -10,7 +10,6 @@ type LifeEvent = { id: string; age: number; text: string };
 export default function DeathPage() {
   const router   = useRouter();
   const charId   = useCharacterStore((s) => s.charId);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: character } = useQuery<any>({
     queryKey: ["character", charId],
@@ -29,13 +28,7 @@ export default function DeathPage() {
     if (character && character.alive) router.push("/");
   }, [character, router]);
 
-  useEffect(() => {
-    const audio = new Audio("/sounds/baby-cry.mp3");
-    audio.volume = 0.25;
-    audio.play().catch(() => {});
-    audioRef.current = audio;
-    return () => { audio.pause(); };
-  }, []);
+
 
   // Eulogy = the longest final event text (AI-generated)
   const eulogy = [...events]

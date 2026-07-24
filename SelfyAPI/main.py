@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from SelfyAPI import database
 from SelfyAPI.cache import redis_client
 from SelfyAPI.dependencies import RedisDep
-from SelfyAPI.routers import auth, pre_school, life, social, character, school, exam_prep
+from SelfyAPI.routers import auth, pre_school, life, character, school, exam_prep, social, lifestyle, university
 from SelfyAPI.routers import self as self_router
 from SelfyAPI.services.engine import client as engine
 
@@ -58,6 +58,8 @@ app.include_router(life.router,      tags=["Lifecycle"])
 app.include_router(social.router,    tags=["Social"])
 app.include_router(pre_school.router, tags=["Pre-School"])
 app.include_router(school.router,     tags=["School"])
+app.include_router(lifestyle.router,  tags=["Lifestyle"])
 app.include_router(exam_prep.router,  tags=["Exam-Prep"])
+app.include_router(university.router, tags=["University"])
 app.include_router(character.router, tags=["Character"])
 app.include_router(auth.router,      tags=["Security"])

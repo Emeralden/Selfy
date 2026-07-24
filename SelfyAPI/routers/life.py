@@ -1,7 +1,9 @@
 import random
 import uuid
+from typing import List, Dict, Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from pydantic import BaseModel
 from sqlmodel import col, select
 
 from SelfyAPI.models.npc import NPC
@@ -12,6 +14,10 @@ from SelfyAPI.services.naming import generate_name_async, get_states as svc_get_
 from ..dependencies import RedisDep, SessionDep, UserDep
 from ..models.character import Character, CharacterCreate, Gender, Stage
 from ..models.event import LifeEvent
+
+class AgeUpResponse(BaseModel):
+    character: Character
+    scenarios: List[Dict[str, Any]] = []
 
 router = APIRouter(prefix="/life")
 
@@ -73,6 +79,13 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user: U
         text=f"I was born as a {new_char.gender.value}. My name is {new_char.first_name} {new_char.last_name}.",
     )
 
+    from SelfyAPI.services.engine import client as engine
+    from SelfyAPI.services.engine.payload import char_state
+    
+    avatar_result = await engine.resolve("script.avatar", char_state(new_char))
+    if avatar_result.get("avatar_url"):
+        new_char.avatar_url = avatar_result["avatar_url"]
+
     session.add(mom)
     session.add(dad)
     session.add(first_memory)
@@ -87,7 +100,7 @@ async def birth_character(char_in: CharacterCreate, session: SessionDep, user: U
     return new_char
 
 
-@router.patch("/{char_id}/age_up", response_model=Character)
+@router.patch("/{char_id}/age_up", response_model=AgeUpResponse)
 async def age_up(char_id: uuid.UUID, session: SessionDep, redis:RedisDep, bg_tasks:BackgroundTasks):
     char = session.get(Character, char_id)
     if not char:
@@ -101,10 +114,10 @@ async def age_up(char_id: uuid.UUID, session: SessionDep, redis:RedisDep, bg_tas
         session.flush() 
         bg_tasks.add_task(embed_and_save, evt.id)
     
-    await emit_age_up(char, session, redis, bg_tasks, log_memory)
+    scenarios = await emit_age_up(char, session, redis, bg_tasks, log_memory)
 
     session.commit()
     session.refresh(char)
 
-    return char
+    return AgeUpResponse(character=char, scenarios=scenarios)
 
