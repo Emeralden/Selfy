@@ -45,7 +45,7 @@ export default function SelfPage() {
   });
 
   // ── Age-specific self actions from backend ───────────────────────────────
-  const { data: selfActions = [] } = useQuery<SelfAction[]>({
+  const { data: selfActions = [], isLoading: isActionsLoading } = useQuery<SelfAction[]>({
     queryKey: ["self-actions", charId, character?.age],
     queryFn: async () => (await apiClient.get(`/self/${charId}/actions`)).data,
     enabled: !!charId && character?.age != null,
@@ -248,7 +248,7 @@ export default function SelfPage() {
           </div>
 
           {/* ── Self Actions from backend ── */}
-          {selfActions.length > 0 && (
+          {!isActionsLoading && selfActions.length > 0 && (
             <div className="flex flex-col gap-3 pb-6">
               {selfActions.map((action) => {
                 const t = THEME_MAP[action.theme] ?? DEFAULT_THEME;
@@ -288,7 +288,17 @@ export default function SelfPage() {
             </div>
           )}
 
-          {selfActions.length === 0 && <div className="pb-6" />}
+          {!isActionsLoading && selfActions.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-slate-100 bg-white/70 px-6 py-12 text-center shadow-sm backdrop-blur-xl">
+              <span className="material-symbols-outlined text-4xl text-slate-300">self_improvement</span>
+              <p className="text-sm font-bold text-slate-400">
+                No self actions available at this age.
+              </p>
+              <p className="text-xs text-slate-300">
+                Age up to unlock new options! 🎂
+              </p>
+            </div>
+          )}
 
         </main>
       </div>

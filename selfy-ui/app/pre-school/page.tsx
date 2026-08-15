@@ -1,16 +1,15 @@
 "use client";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import Header from "../components/Header";
 import GameCanvas from "../components/GameCanvas";
 import DrawingCanvas from "../components/DrawingCanvas";
 import BlockTower from "../components/BlockTower";
-import ChoicePicker, { type ChoiceAction } from "../components/ChoicePicker";
+import ChoicePicker from "../components/ChoicePicker";
 import { useCharacterStore } from "../store/useCharacterStore";
-import { usePopupStore } from "../store/usePopupStore";
+import { useActionHandler, type PhaseAction } from "@/lib/useActionHandler";
 import { apiClient } from "@/lib/apiClient";
-import { type PhaseAction } from "@/lib/useActionHandler";
 
 // ── Visual data for the 2×2 activity grid ─────────────────────────────────────
 // IDs must match backend action IDs in actions_preschool.yaml
@@ -54,23 +53,21 @@ const ACTIVITIES = [
 ];
 
 export default function PreSchoolPage() {
-  const charId        = useCharacterStore((s) => s.charId) ?? "";
-  const { showPopup } = usePopupStore();
-  const queryClient   = useQueryClient();
+  const charId      = useCharacterStore((s) => s.charId) ?? "";
+  const queryClient = useQueryClient();
 
-  // ── Overlay state ─────────────────────────────────────────────────────────
-  const [showDrawing,   setShowDrawing]   = useState(false);
-  const [showBlocks,    setShowBlocks]    = useState(false);
-  const [pendingChoice, setPendingChoice] = useState<ChoiceAction | null>(null);
+  // ── Game overlay state (only draw & blocks need this) ─────────────────────
+  const [showDrawing, setShowDrawing] = useState(false);
+  const [showBlocks,  setShowBlocks]  = useState(false);
 
-  // ── Actions from backend — carries outcomes for ChoicePicker ─────────────
+  // ── Actions from engine ──────────────────────────────────────────────────
   const { data: preschoolActions = [] } = useQuery<PhaseAction[]>({
     queryKey: ["preschool-actions", charId],
     queryFn: async () => (await apiClient.get(`/pre-school/${charId}/actions`)).data,
     enabled: !!charId,
   });
 
-  // ── Star count ────────────────────────────────────────────────────────────
+  // ── Star count ───────────────────────────────────────────────────────────
   const { data: stars = 0 } = useQuery({
     queryKey: ["edu-stars", charId],
     queryFn: async () => {
@@ -80,52 +77,25 @@ export default function PreSchoolPage() {
     enabled: !!charId,
   });
 
-  // ── Education mutation — handles static + choice via "action:outcome" ─────
-  const educationMutation = useMutation({
-    mutationFn: async (actionKey: string) => {
-      const [action_name, outcome] = actionKey.split(":");
-      const res = await apiClient.get(`/pre-school/${charId}/action`, {
-        params: { action_name, ...(outcome ? { outcome } : {}) },
-      });
-      return res.data as { title: string; body: string; stars: number };
-    },
-    onSuccess: (data) => {
-      if (typeof data.stars === "number") {
-        queryClient.setQueryData(["edu-stars", charId], data.stars);
-      }
-      queryClient.invalidateQueries({ queryKey: ["character", charId] });
-      showPopup(data.body, data.title, "palette");
-    },
-    onError: (err: any) => {
-      showPopup(err?.response?.data?.detail ?? "Something went wrong.", "Oops!", "error");
-    },
-  });
+  // ── Shared action handler — handles mutation, popups, ChoicePicker ──────
+  const { handleAction, pickOutcome, dismissChoice, pendingChoice, isPending } =
+    useActionHandler({
+      phase: "pre-school",
+      charId,
+      popupIcon: "palette",
+      extraInvalidate: [["preschool-actions", charId], ["edu-stars", charId]],
+    });
 
-  // ── Activity tap handler ──────────────────────────────────────────────────
+  // ── Find the PhaseAction object for a given activity ID ─────────────────
+  const findAction = (id: string) => preschoolActions.find((a) => a.id === id);
+
+  // ── Activity tap: open game overlay OR delegate to useActionHandler ──────
   const handleActivityTap = (activityId: string) => {
     if (activityId === "draw_weird")   { setShowDrawing(true); return; }
     if (activityId === "build_blocks") { setShowBlocks(true);  return; }
 
-    // Choice activities — get outcomes from backend-fetched actions
-    const action = preschoolActions.find((a) => a.id === activityId);
-    if (action?.action_type === "choice" && action.outcomes) {
-      setPendingChoice({
-        id:          action.id,
-        label:       action.label,
-        emoji:       action.emoji,
-        theme:       action.theme,
-        description: action.description,
-        outcomes:    action.outcomes ?? {},
-      });
-    }
-  };
-
-  // ── Choice picked ─────────────────────────────────────────────────────────
-  const handlePickOutcome = (outcomeKey: string) => {
-    if (!pendingChoice) return;
-    const actionId = pendingChoice.id;
-    setTimeout(() => setPendingChoice(null), 350); // let feedback flash first
-    educationMutation.mutate(`${actionId}:${outcomeKey}`);
+    const action = findAction(activityId);
+    if (action) handleAction(action);
   };
 
   return (
@@ -136,9 +106,10 @@ export default function PreSchoolPage() {
           <DrawingCanvas
             onDone={() => {
               setShowDrawing(false);
-              educationMutation.mutate("draw_weird");
+              const action = findAction("draw_weird");
+              if (action) handleAction(action);
             }}
-            isLoading={educationMutation.isPending}
+            isLoading={isPending}
           />
         </GameCanvas>
       )}
@@ -148,9 +119,10 @@ export default function PreSchoolPage() {
           <BlockTower
             onDone={(result) => {
               setShowBlocks(false);
-              educationMutation.mutate(`build_blocks:${result}`);
+              const action = findAction("build_blocks");
+              if (action) handleAction(action);
             }}
-            isLoading={educationMutation.isPending}
+            isLoading={isPending}
           />
         </GameCanvas>
       )}
@@ -158,9 +130,9 @@ export default function PreSchoolPage() {
       {pendingChoice && (
         <ChoicePicker
           action={pendingChoice}
-          onPick={handlePickOutcome}
-          onClose={() => setPendingChoice(null)}
-          isLoading={educationMutation.isPending}
+          onPick={pickOutcome}
+          onClose={dismissChoice}
+          isLoading={isPending}
         />
       )}
 
@@ -297,7 +269,7 @@ export default function PreSchoolPage() {
                 id={`activity-${act.id}`}
                 type="button"
                 onClick={() => handleActivityTap(act.id)}
-                disabled={educationMutation.isPending}
+                disabled={isPending}
                 className="group relative overflow-hidden rounded-3xl transition-all duration-200 active:scale-[0.93] disabled:opacity-60"
                 style={{
                   background: act.grad,

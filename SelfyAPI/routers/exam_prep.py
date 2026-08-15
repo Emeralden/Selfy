@@ -1,107 +1,44 @@
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from SelfyAPI.dependencies import SessionDep
+from SelfyAPI.routers.actions import make_action_router
+from SelfyAPI.routers.utils import get_char_or_404, remove_tag
+from SelfyAPI.constants import COACHING_TAG
+from SelfyAPI.services.qualification import compute_rank, rank_to_label, rank_to_tier, tier_to_college
 
-from SelfyAPI.dependencies import RedisDep, SessionDep
-from SelfyAPI.models.character import Character
-from SelfyAPI.models.event import LifeEvent
-from SelfyAPI.services.director import embed_and_save
-from SelfyAPI.services.engine import client as engine
-from SelfyAPI.services.engine.payload import char_state, apply_stat_changes
-from SelfyAPI.services.rate_limiter import within_limit
-from SelfyAPI.services.scenarios import enrich_event
-
-router = APIRouter(prefix="/exam-prep")
-
-
-# ── Endpoints ─────────────────────────────────────────────────────────────────
-
-@router.get("/{char_id}/actions")
-async def get_actions(char_id: uuid.UUID, session: SessionDep):
-    char = session.get(Character, char_id)
-    if not char:
-        raise HTTPException(status_code=404, detail="Character not found.")
-    return await engine.resolve("action.available", {
-        "phase": "exam",
-        "age":   char.age,
-        "tags":  list(char.tags or []),
-    })
+router = make_action_router("exam-prep", "exam")
 
 
 @router.delete("/{char_id}/coaching")
 async def leave_coaching(char_id: uuid.UUID, session: SessionDep):
     """Remove the Coaching tag — player dropped out of coaching."""
-    char = session.get(Character, char_id)
-    if not char:
-        raise HTTPException(status_code=404, detail="Character not found.")
-    if "Coaching" not in (char.tags or []):
-        raise HTTPException(status_code=400, detail="Not currently enrolled in coaching.")
-    char.tags = [t for t in char.tags if t != "Coaching"]
-    session.add(char)
-    session.commit()
+    char = get_char_or_404(session, char_id)
+    remove_tag(char, session, COACHING_TAG, missing_detail="Not currently enrolled in coaching.")
     return {"ok": True}
 
 
-@router.get("/{char_id}/action")
-async def do_action(
-    char_id: uuid.UUID,
-    action_name: str,
-    session: SessionDep,
-    redis: RedisDep,
-    bg_tasks: BackgroundTasks,
-):
-    char = session.get(Character, char_id)
-    if not char:
-        raise HTTPException(status_code=404, detail="Character not found.")
+@router.get("/{char_id}/rank")
+def get_rank(char_id: uuid.UUID, session: SessionDep):
+    """Return AIR projection + stress data — replaces frontend getAIR()."""
+    char = get_char_or_404(session, char_id)
+    rank  = compute_rank(char.grades or 50, char.discipline or 50)
+    tier  = rank_to_tier(rank, char.karma or 50)
+    label = rank_to_label(rank)
 
-    # 1. Validate action is available
-    available = await engine.resolve("action.available", {
-        "phase": "exam",
-        "age":   char.age,
-        "tags":  list(char.tags or []),
-    })
-    action_meta = next((a for a in available if a["id"] == action_name), None)
-    if not action_meta:
-        raise HTTPException(status_code=403, detail="Action not available.")
-
-    # 2. Rate-limit
-    stats_apply = await within_limit(redis, char_id, char.age, action_name, action_meta["yearly_limit"])
-
-    # 3. Engine resolves
-    result = await engine.resolve("action.resolve", {
-        "phase":     "exam",
-        "action_id": action_name,
-        "state":     char_state(char),
-    })
-
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-
-    # 4. Apply effects + tags
-    if stats_apply:
-        apply_stat_changes(char, result.get("stat_changes", {}))
-        for tag in result.get("tags_granted", []):
-            if tag not in (char.tags or []):
-                char.tags = list(char.tags or []) + [tag]
-
-    # 5. LLM enrichment
-    event = {
-        "id":        action_name,
-        "version":   "1.0",
-        "text_base": result.get("text", ""),
-        "title":     result.get("title", ""),
-    }
-    await enrich_event(event, result.get("tone", "neutral"), redis, bg_tasks)
-
-    # 6. Log + persist
-    log_entry = LifeEvent(char_id=char_id, age=char.age, text=result.get("text", ""))
-    session.add(log_entry)
-    session.add(char)
-    session.commit()
-    session.refresh(log_entry)
-    bg_tasks.add_task(embed_and_save, log_entry.id)
+    # `level` uses the canonical vocabulary from lib/levelColors.ts
+    if rank < 1000:    air, stress, level = "< 1,000",    20, "elite"
+    elif rank < 5000:  air, stress, level = "< 5,000",    40, "strong"
+    elif rank < 20000: air, stress, level = "< 20,000",   60, "average"
+    elif rank < 60000: air, stress, level = "< 60,000",   75, "below"
+    elif rank < 150000:air, stress, level = "< 1,50,000", 90, "poor"
+    else:              air, stress, level = "Undetermined",100,"critical"
 
     return {
-        "title": event["title"],
-        "body":  event["text_base"],
+        "rank":    rank,
+        "air":     air,
+        "label":   label,
+        "tier":    tier,
+        "stress":  stress,
+        "level":   level,
+        "college": tier_to_college(tier),
     }

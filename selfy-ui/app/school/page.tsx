@@ -1,15 +1,17 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "../components/Header";
 import ChoicePicker from "../components/ChoicePicker";
 import { useCharacterStore } from "../store/useCharacterStore";
 import { useActionHandler, type PhaseAction } from "@/lib/useActionHandler";
+import { usePopupStore } from "../store/usePopupStore";
 import { apiClient } from "@/lib/apiClient";
 import { THEME_MAP, DEFAULT_THEME } from "@/lib/themeMap";
+import { TAGS } from "@/lib/tags";
 
-
-// ── Grade derivation ──────────────────────────────────────────────────────
+// ── Grade derivation (pure display — no game logic) ───────────────────────
 function getGrade(grades: number): { base: string; suffix: string; glow: string } {
   if (grades >= 90) return { base: "A", suffix: "+", glow: "rgba(16,185,129,0.5)"  };
   if (grades >= 80) return { base: "A", suffix: "",  glow: "rgba(34,197,94,0.5)"   };
@@ -19,21 +21,17 @@ function getGrade(grades: number): { base: string; suffix: string; glow: string 
   return               { base: "F", suffix: "",  glow: "rgba(239,68,68,0.5)"    };
 }
 
-// ── Status derivation ─────────────────────────────────────────────────────
-// Tags earned via backend actions take priority.
-// Stat-based labels are the fallback for characters without earned tags.
-// ageRange: [min, max] — tag only shows while char is within this age window.
+// ── Status derivation — tag-priority, stat-derived fallback ──────────────
 const TAG_STATUS: Record<string, { label: string; emoji: string; ageRange?: [number, number] }> = {
-  Monitor:      { label: "Monitor",      emoji: "📋", ageRange: [10, 13] },
-  Topper:       { label: "Topper",       emoji: "🏆" },
-  Sportsperson: { label: "Sportsperson", emoji: "⚽" },
+  [TAGS.MONITOR]:      { label: "Monitor",      emoji: "📋", ageRange: [10, 13] },
+  [TAGS.TOPPER]:       { label: "Topper",       emoji: "🏆" },
+  [TAGS.SPORTSPERSON]: { label: "Sportsperson", emoji: "⚽" },
 };
 
 function getStatus(char: Record<string, unknown>): { label: string; emoji: string } {
   const tags = (char.tags ?? []) as string[];
   const age  = (char.age  as number) ?? 0;
 
-  // 1. Earned tags win — but only within their valid age window
   for (const tag of tags) {
     const entry = TAG_STATUS[tag];
     if (!entry) continue;
@@ -41,7 +39,6 @@ function getStatus(char: Record<string, unknown>): { label: string; emoji: strin
     return { label: entry.label, emoji: entry.emoji };
   }
 
-  // 2. Stat-derived fallback
   const grades      = (char.grades      as number) ?? 50;
   const mind        = (char.mind        as number) ?? 50;
   const body        = (char.body        as number) ?? 50;
@@ -58,12 +55,8 @@ function getStatus(char: Record<string, unknown>): { label: string; emoji: strin
   return                                          { label: "Average Kid",   emoji: "😊" };
 }
 
-// ── Core actions (always visible, 3-in-a-row) ────────────────────────────
-const CORE_ACTIONS = [
-  { id: "change_school", label: "Change School", emoji: "🏫", theme: "indigo", danger: false },
-  { id: "participate",   label: "Participate",   emoji: "🏆", theme: "amber",  danger: false },
-  { id: "drop_out",      label: "Drop Out",       emoji: "🚪", theme: "red",    danger: true  },
-];
+// ── Core action IDs — derived from engine response, not hardcoded ────────
+const CORE_ACTION_IDS = new Set(["change_school", "participate", "drop_out"]);
 
 // ── Social pills ─────────────────────────────────────────────────────────
 const SOCIAL_PILLS = [
@@ -72,12 +65,12 @@ const SOCIAL_PILLS = [
 ];
 
 
-
 export default function SchoolPage() {
   const charId = useCharacterStore((s) => s.charId) ?? "";
+  const router = useRouter();
 
   // ── Character data ──────────────────────────────────────────────────────
-  const { data: character } = useQuery({
+  const { data: character, isLoading } = useQuery({
     queryKey: ["character", charId],
     queryFn: async () => (await apiClient.get(`/character/${charId}`)).data,
     enabled: !!charId,
@@ -113,6 +106,130 @@ export default function SchoolPage() {
   const grades = character?.grades ?? 50;
   const grade  = getGrade(grades);
   const status = getStatus(character ?? {});
+  const isDropout = (character?.tags ?? []).includes(TAGS.SCHOOL_DROPOUT);
+
+  // Derive core actions from engine response (labels/emojis/themes come from YAML)
+  const coreActions = ageActions.filter((a) => CORE_ACTION_IDS.has(a.id));
+  const regularActions = ageActions.filter((a) => !CORE_ACTION_IDS.has(a.id));
+
+  const showPopup    = usePopupStore((s) => s.showPopup);
+  const showScenario = usePopupStore((s) => s.showScenario);
+
+  // ── Change School ───────────────────────────────────────────────────────
+  const changeSchoolMutation = useMutation({
+    mutationFn: async () => (await apiClient.post(`/school/${charId}/change`)).data,
+    onSuccess: (data) => {
+      showPopup(data.body, data.title, "school");
+      queryClient.invalidateQueries({ queryKey: ["character", charId] });
+      queryClient.invalidateQueries({ queryKey: ["school-actions", charId] });
+    },
+    onError: () => showPopup("Something went wrong.", "Oops!", "error"),
+  });
+
+  // ── Drop School ─────────────────────────────────────────────────────────
+  const dropSchoolMutation = useMutation({
+    mutationFn: async () => (await apiClient.post(`/school/${charId}/drop`)).data,
+    onSuccess: (data) => {
+      if (!data.allowed) {
+        showPopup(data.body, data.title, "block");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["character", charId] });
+      showPopup(data.body, data.title, "door_open");
+    },
+    onError: () => showPopup("Something went wrong.", "Oops!", "error"),
+  });
+
+  function handleDropSchool() {
+    const age = character?.age ?? 0;
+    if (age <= 12) {
+      // Static block — no confirm needed, parents just say no
+      dropSchoolMutation.mutate();
+      return;
+    }
+    // Ages 13+ — confirm first
+    showScenario(
+      "Drop Out? 🚪",
+      "This is permanent for this stage. You'll lose your classmates and teacher. Are you sure?",
+      [
+        { label: "Yes, drop out", slug: "confirm", variant: "danger" },
+        { label: "Cancel",        slug: "cancel",  variant: "muted"  },
+      ],
+      (slug) => {
+        if (slug === "confirm") dropSchoolMutation.mutate();
+      },
+      "door_open"
+    );
+  }
+
+  // ── Rejoin mutation ──────────────────────────────────────────────────────
+  const rejoinMutation = useMutation({
+    mutationFn: async () => (await apiClient.post(`/school/${charId}/rejoin`)).data,
+    onSuccess: (data) => {
+      showPopup(data.body, data.title, "school");
+      queryClient.invalidateQueries({ queryKey: ["character", charId] });
+      queryClient.invalidateQueries({ queryKey: ["npcs", charId] });
+      queryClient.invalidateQueries({ queryKey: ["school-actions", charId] });
+    },
+    onError: () => showPopup("Something went wrong.", "Oops!", "error"),
+  });
+
+  if (isLoading || !character) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-[#FAFBFF]">
+        <h1 className="animate-pulse text-xl font-black text-primary">Loading...</h1>
+      </div>
+    );
+  }
+
+  // ── Dropout screen ───────────────────────────────────────────────────────
+  if (isDropout) {
+    return (
+      <div className="flex h-dvh flex-col overflow-hidden bg-[#FAFBFF]">
+        <Header />
+        <main className="hide-scrollbar mx-auto w-full max-w-2xl flex-1 overflow-y-auto px-5 py-5 flex flex-col items-center justify-center gap-6">
+          {/* Icon */}
+          <div
+            className="flex h-24 w-24 items-center justify-center rounded-3xl shadow-inner"
+            style={{ background: "linear-gradient(135deg,#FEF2F2,#FEE2E2)", border: "1.5px solid rgba(239,68,68,0.2)" }}
+          >
+            <span className="text-5xl">🚪</span>
+          </div>
+
+          {/* Text */}
+          <div className="text-center space-y-2 px-4">
+            <h1 className="text-3xl font-black tracking-tight text-slate-800">Dropped Out</h1>
+            <p className="text-[14px] font-semibold text-slate-400 leading-relaxed">
+              You walked away. The gate closed behind you.
+              <br />The future is completely unwritten.
+            </p>
+          </div>
+
+          {/* Rejoin button */}
+          <button
+            id="school-rejoin"
+            type="button"
+            onClick={() => rejoinMutation.mutate()}
+            disabled={rejoinMutation.isPending}
+            className="flex items-center gap-2.5 rounded-2xl px-6 py-3.5 text-[14px] font-black tracking-wide transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
+            style={{
+              background: "linear-gradient(135deg,#6D28D9,#4F46E5)",
+              color: "#fff",
+              boxShadow: "0 8px 24px -8px rgba(109,40,217,0.45)",
+            }}
+          >
+            <span className="material-symbols-outlined text-[18px]">school</span>
+            {rejoinMutation.isPending ? "Rejoining…" : "Rejoin School"}
+          </button>
+
+          {/* Back */}
+          <Link href="/" className="text-[12px] font-bold text-slate-400 underline underline-offset-2">
+            Back to life
+          </Link>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -205,7 +322,7 @@ export default function SchoolPage() {
           </div>
 
           {/* ── Tuition Card (visible only when enrolled) ── */}
-          {character?.tags?.includes("Tuition") && (
+          {character?.tags?.includes(TAGS.TUITION) && (
             <div
               className="relative overflow-hidden rounded-3xl px-5 py-6"
               style={{
@@ -250,7 +367,8 @@ export default function SchoolPage() {
           {/* ── Social Pills ── */}
           <div className="flex gap-3">
             {SOCIAL_PILLS.map((pill) => (
-              <button key={pill.id} id={`school-${pill.id}`} type="button" onClick={() => {}}
+              <button key={pill.id} id={`school-${pill.id}`} type="button"
+                onClick={() => router.push(`/school/${pill.id}`)}
                 className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-all duration-150 hover:border-primary/30 hover:bg-primary/5 hover:shadow-md active:scale-[0.97]">
                 <span className="text-lg leading-none">{pill.emoji}</span>
                 <span className="text-[13px] font-black tracking-wide text-slate-700">{pill.label}</span>
@@ -259,20 +377,33 @@ export default function SchoolPage() {
             ))}
           </div>
 
-          {/* ── Core actions — 3 compact square cards ── */}
+          {/* ── Core actions — 3 compact square cards derived from engine response ── */}
           <div className="grid grid-cols-3 gap-3">
-            {CORE_ACTIONS.map((action) => {
+            {coreActions.map((action) => {
               const t = THEME_MAP[action.theme] ?? DEFAULT_THEME;
+              const isDanger = action.id === "drop_out";
+              const isActionPending =
+                (action.id === "change_school" && changeSchoolMutation.isPending) ||
+                (action.id === "drop_out"      && dropSchoolMutation.isPending);
+
+              function handleCoreAction() {
+                if (action.id === "change_school") changeSchoolMutation.mutate();
+                if (action.id === "participate")   router.push("/school/participate");
+                if (action.id === "drop_out")      handleDropSchool();
+              }
+
               return (
-                <button key={action.id} id={`school-core-${action.id}`} type="button" onClick={() => {}}
-                  className="group flex aspect-square flex-col items-center justify-center gap-2.5 rounded-3xl p-3 transition-all duration-200 active:scale-[0.94]"
+                <button key={action.id} id={`school-core-${action.id}`} type="button"
+                  onClick={handleCoreAction}
+                  disabled={isActionPending}
+                  className="group flex aspect-square flex-col items-center justify-center gap-2.5 rounded-3xl p-3 transition-all duration-200 active:scale-[0.94] disabled:opacity-50"
                   style={{ background: t.bg, boxShadow: `0 4px 16px -4px ${t.glow}, inset 0 1px 0 rgba(255,255,255,0.8)`, border: `1.5px solid ${t.color}28` }}>
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-2xl transition-transform duration-200 group-hover:scale-110 group-active:scale-90"
                     style={{ background: `${t.color}18`, border: `1.5px solid ${t.color}30` }}>
-                    {action.emoji}
+                    {isActionPending ? "⏳" : action.emoji}
                   </div>
                   <span className="text-center text-[10px] font-black uppercase leading-tight tracking-wide"
-                    style={{ color: action.danger ? t.color : "#334155" }}>
+                    style={{ color: isDanger ? t.color : "#334155" }}>
                     {action.label}
                   </span>
                 </button>
@@ -281,9 +412,9 @@ export default function SchoolPage() {
           </div>
 
           {/* ── Age-specific actions from backend ── */}
-          {ageActions.length > 0 && (
+          {regularActions.length > 0 && (
             <div className="flex flex-col gap-3 pb-6">
-              {ageActions.map((action) => {
+              {regularActions.map((action) => {
                 const t = THEME_MAP[action.theme] ?? DEFAULT_THEME;
                 return (
                   <button key={action.id} id={`school-age-${action.id}`} type="button"
@@ -309,7 +440,7 @@ export default function SchoolPage() {
             </div>
           )}
 
-          {ageActions.length === 0 && <div className="pb-6" />}
+          {regularActions.length === 0 && <div className="pb-6" />}
 
         </main>
       </div>

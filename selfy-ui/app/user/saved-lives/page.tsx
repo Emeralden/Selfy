@@ -6,20 +6,11 @@ import { useState, useRef } from "react";
 import { useCharacterStore } from "../../store/useCharacterStore";
 import { apiClient } from "@/lib/apiClient";
 import Header from "../../components/Header";
+import { getStageMeta } from "@/lib/stageMeta";
 
-// ── Stage icon helper ────────────────────────────────────────────────────────
+// Stage icon helper — delegates to shared lib
 function getStageIcon(stage: string): string {
-  const map: Record<string, string> = {
-    "Baby":       "baby_changing_station",
-    "Toddler":    "child_care",
-    "Pre-School": "toys",
-    "School":     "school",
-    "Exam-Prep":  "menu_book",
-    "University": "account_balance",
-    "Adult":      "trending_up",
-    "Elder":      "elderly",
-  };
-  return map[stage] ?? "person";
+  return getStageMeta(stage).icon;
 }
 
 const PRIMARY = "#6D28D9";
@@ -37,22 +28,44 @@ export default function SavedLivesPage() {
 
   // ── Confirm-delete state (charId → timeout ref) ─────────────────────────
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [slidingOut, setSlidingOut] = useState<string | null>(null);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const clearConfirmTimer = () => {
+    if (confirmTimerRef.current) {
+      clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = null;
+    }
+  };
+
   const requestDelete = (charId: string) => {
-    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    clearConfirmTimer();
     setConfirmingDelete(charId);
-    // Auto-cancel after 3 s if user doesn't confirm
     confirmTimerRef.current = setTimeout(() => setConfirmingDelete(null), 3000);
+  };
+
+  const confirmDelete = (charId: string) => {
+    clearConfirmTimer();
+    deleteMutation.mutate(charId);
   };
 
   // ── Delete mutation ───────────────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: async (charId: string) =>
       (await apiClient.delete(`/character/${charId}/delete`)).data,
-    onSuccess: () => {
+    onSuccess: (_data, charId) => {
       setConfirmingDelete(null);
-      queryClient.invalidateQueries({ queryKey: ["saved-characters"] });
+      setSlidingOut(charId);
+      // After animation completes, yank from cache (no refetch flicker)
+      setTimeout(() => {
+        setSlidingOut(null);
+        queryClient.setQueryData(["saved-characters"], (old: any[] | undefined) =>
+          (old ?? []).filter((c: any) => c.id !== charId),
+        );
+      }, 600);
+    },
+    onError: () => {
+      setConfirmingDelete(null);
     },
   });
 
@@ -143,12 +156,49 @@ export default function SavedLivesPage() {
 
         {/* ── Saved character cards ── */}
         {!isLoading && savedChars.length > 0 && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col">
             {savedChars.map((char: any) => (
               <div
                 key={char.id}
-                className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm"
+                className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm"
+                style={{
+                  marginBottom: slidingOut === char.id ? 0 : 12,
+                  transition: slidingOut === char.id
+                    ? "transform 350ms cubic-bezier(0.4,0,0.2,1), opacity 350ms ease, max-height 250ms ease 350ms, margin-bottom 250ms ease 350ms, border-width 250ms ease 350ms"
+                    : "none",
+                  ...(slidingOut === char.id
+                    ? { transform: "translateX(110%)", opacity: 0, maxHeight: 0, borderWidth: 0 }
+                    : { maxHeight: "500px" }),
+                }}
               >
+                {/* ── Red frosted-glass confirm overlay ── */}
+                {confirmingDelete === char.id && (
+                  <button
+                    type="button"
+                    onClick={() => confirmDelete(char.id)}
+                    disabled={deleteMutation.isPending}
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 rounded-3xl transition-all duration-200 active:scale-[0.99] disabled:opacity-70"
+                    style={{
+                      background: "rgba(220,38,38,0.18)",
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      border: "1.5px solid rgba(220,38,38,0.35)",
+                    }}
+                  >
+                    {deleteMutation.isPending && deleteMutation.variables === char.id ? (
+                      <span className="material-symbols-outlined animate-spin text-[28px] text-red-600">progress_activity</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[28px] text-red-600">delete_forever</span>
+                    )}
+                    <span className="text-[15px] font-black tracking-tight text-red-700">
+                      {deleteMutation.isPending && deleteMutation.variables === char.id ? "Deleting…" : "Tap to delete"}
+                    </span>
+                    <span className="text-[10px] font-bold text-red-500/70">
+                      This life will be gone forever
+                    </span>
+                  </button>
+                )}
+
                 <div className="flex items-center justify-between px-5 py-4">
                   {/* Character info */}
                   <div className="flex items-center gap-3">
@@ -180,37 +230,21 @@ export default function SavedLivesPage() {
                     </span>
                     <div className="flex items-center gap-2">
 
-                      {/* Delete — tap once to arm, tap again to confirm */}
-                      {confirmingDelete === char.id ? (
-                        <button
-                          type="button"
-                          onClick={() => deleteMutation.mutate(char.id)}
-                          disabled={deleteMutation.isPending}
-                          className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-black text-red-500 transition-all active:scale-95 disabled:opacity-50"
-                        >
-                          {deleteMutation.isPending && deleteMutation.variables === char.id ? (
-                            <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>
-                          ) : (
-                            <span className="material-symbols-outlined text-[14px]">warning</span>
-                          )}
-                          Sure?
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => requestDelete(char.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-400 transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-400 active:scale-95"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                        </button>
-                      )}
+                      {/* Delete icon — arms the overlay */}
+                      <button
+                        type="button"
+                        onClick={() => requestDelete(char.id)}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-400 transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-400 active:scale-95"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
 
                       {/* Resume */}
                       <button
                         type="button"
                         onClick={() => resumeMutation.mutate(char.id)}
                         disabled={resumeMutation.isPending}
-                        className="flex items-center gap-1 rounded-xl px-3 py-1.5 text-[12px] font-black text-white transition-all active:scale-95 disabled:opacity-50"
+                        className="flex shrink-0 items-center gap-1 rounded-xl px-3 py-1.5 text-[12px] font-black text-white transition-all active:scale-95 disabled:opacity-50"
                         style={{ background: PRIMARY }}
                       >
                         {resumeMutation.isPending && resumeMutation.variables === char.id ? (

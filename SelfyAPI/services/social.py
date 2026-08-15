@@ -1,137 +1,108 @@
+import asyncio
 import random
 
 from sqlmodel import select
 
 from SelfyAPI.dependencies import SessionDep
 from SelfyAPI.models.character import Character, Gender
-from SelfyAPI.models.npc import NPC
+from SelfyAPI.models.npc import NPC, NPCRole
 from SelfyAPI.services.naming import generate_name_async
+from SelfyAPI.services.npc_spawn_config import get_spawn_config
 
 
-def get_reputation(char:Character):
-    achievements = 0
-    scandals = 0
-    
-    raw_rep = (char.appeal * 0.3) + (char.savvy * 0.2) + (achievements * 0.4) - (scandals * 0.5)
-
-    reputation = raw_rep * 1.5
-
-    return reputation
 
 
 async def spawn_extended(char: Character, session: SessionDep):
-    archetypes = [{"role": "Rival Cousin",
-                 "resentment": 30,
-                 "temperament": 20,
-                 "affection": -10,
-                 "age": random.randint(char.age-1, char.age+1),
-                 "gender": char.gender,
-                 "is_significant": True
-                },
-                {"role": "Nosy Aunt",
-                 "affection": -20,
-                 "respect": 10,
-                 "age": random.randint(25, 40),
-                 "gender": "Female",
-                 "is_significant": True}]
+    cfg = await get_spawn_config()
+    aunt_cfg = cfg.get("nosy_aunt", {"min_age": 25, "max_age": 40})
 
-    for archetype in archetypes:
-        first_name, last_name = await generate_name_async(archetype["gender"], char.country, char.state)
+    archetypes = [
+        {"role": NPCRole.RIVAL_COUSIN, "resentment": 30, "temperament": 20, "affection": -10,
+         "age": random.randint(char.age - 1, char.age + 1), "gender": char.gender, "is_significant": True},
+        {"role": NPCRole.NOSY_AUNT, "affection": -20, "respect": 10,
+         "age": random.randint(aunt_cfg["min_age"], aunt_cfg["max_age"]), "gender": "Female", "is_significant": True},
+    ]
+
+    # All name calls in parallel — 2 HTTP calls at once instead of sequential.
+    names = await asyncio.gather(
+        *[generate_name_async(a["gender"], char.country, char.state) for a in archetypes]
+    )
+
+    for archetype, (first_name, last_name) in zip(archetypes, names):
         archetype["gender"] = Gender(archetype["gender"])
-        npc = NPC(first_name=first_name,
-                  last_name=last_name,
-                  char_id=char.id,
-                  **archetype)
-        session.add(npc)
+        session.add(NPC(first_name=first_name, last_name=last_name, char_id=char.id, **archetype))
 
     session.commit()
-    return
-
 
 
 async def spawn_school_cohort(char: Character, session: SessionDep, num_kids: int):
+    from SelfyAPI.services.engine import client as engine
 
-    for _ in range(num_kids):
-        gender = random.choice(["Male", "Female"])
-        first_name, last_name = await generate_name_async(gender, char.country, char.state)
+    cfg = await get_spawn_config()
+    teacher_cfg = cfg.get("teacher", {"min_age": 25, "max_age": 50})
+    spread = cfg.get("school_cohort", {}).get("kid_age_spread", 1)
 
-        kid = NPC(
+    genders = [random.choice(["Male", "Female"]) for _ in range(num_kids + 1)]  # +1 for teacher
+    ages_kids   = [random.randint(char.age - spread, char.age + spread) for _ in range(num_kids)]
+    age_teacher = random.randint(teacher_cfg["min_age"], teacher_cfg["max_age"])
+
+    # All name calls in parallel
+    names = await asyncio.gather(
+        *[generate_name_async(g, char.country, char.state) for g in genders]
+    )
+
+    # Build NPC objects so we have IDs for avatar seeds
+    npcs: list[NPC] = []
+    for i in range(num_kids):
+        first_name, last_name = names[i]
+        npcs.append(NPC(
             first_name=first_name,
             last_name=last_name,
-            age=random.randint((char.age)-1, (char.age)+1),
-            gender=gender,
-            role="classmate",
+            age=ages_kids[i],
+            gender=genders[i],
+            role=NPCRole.CLASSMATE,
             char_id=char.id,
-        )
-        session.add(kid)
+        ))
 
-    gender = random.choice(["Male", "Female"])
-    first_name, last_name = await generate_name_async(gender, char.country, char.state)
+    first_name, last_name = names[-1]
     teacher = NPC(
         first_name=first_name,
         last_name=last_name,
-        age=random.randint(25, 50),
-        gender=gender,
-        role="teacher",
+        age=age_teacher,
+        gender=genders[-1],
+        role=NPCRole.TEACHER,
         char_id=char.id,
     )
-    session.add(teacher)
+    npcs.append(teacher)
 
-    session.commit()
-    return
-
-
-def purge_npcs(char:Character, session:SessionDep):
-
-    query = select(NPC).where(
-        NPC.char_id == char.id,
-        NPC.role.in_(["classmate", "teacher"]),
-        NPC.is_significant ==False
+    # Generate avatars in one gather — use char's state for skin region
+    # skin_color is left as None so each NPC gets their own random pick from
+    # the same regional pool (classmates don't need identical skin to the char)
+    avatar_payloads = [
+        {"first_name": n.first_name, "id": str(n.id),
+         "age": n.age, "gender": n.gender.value if hasattr(n.gender, "value") else str(n.gender),
+         "state": char.state}
+        for n in npcs
+    ]
+    avatar_results = await asyncio.gather(
+        *[engine.resolve("script.avatar", p) for p in avatar_payloads]
     )
 
-    npcs = session.exec(query).all()
+    for npc, result in zip(npcs, avatar_results):
+        if result.get("avatar_url"):
+            npc.avatar_url = result["avatar_url"]
+        session.add(npc)
 
-    for npc in npcs:
-        session.delete(npc)
-    
     session.commit()
-    return
 
 
-def relation_label(npc:NPC):
-    a = npc.affection
-    t = npc.trust
-    r = npc.respect
-    rs = npc.resentment
- 
-    if a>70 and t>70:
-        return "Attached"
-
-    elif (a>60 and t>60) and r>40 and rs<50:
-        return "Close"
-
-    elif (a>50 and (t>40 or r>40)) and rs<60:
-        return "Warm"
-
-    elif a>60 and rs>50:
-        return "Complicated"
-
-    elif r>50 and (t<40 or rs>40):
-        return "Strained"
-
-    elif t>60 and a<40:
-        return "Formal"
-
-    elif rs>60 and (a<40 and t<40):
-        return "Fractured"
-
-    elif rs>=50 and (a<50 or t<50):
-        return "Tense"
-
-    elif a<30 and t<30:
-        return "Distant"
-
-
-    return "Neutral"
-    
+def purge_npcs(char: Character, session: SessionDep):
+    query = select(NPC).where(
+        NPC.char_id == char.id,
+        NPC.role.in_([NPCRole.CLASSMATE, NPCRole.TEACHER]),
+        NPC.is_significant == False,
+    )
+    for npc in session.exec(query).all():
+        session.delete(npc)
+    session.commit()
 

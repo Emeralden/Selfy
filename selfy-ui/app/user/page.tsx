@@ -5,20 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCharacterStore } from "../store/useCharacterStore";
 import { apiClient } from "@/lib/apiClient";
 import Header from "../components/Header";
+import { getStageMeta } from "@/lib/stageMeta";
 
-// ── Stage icon helper ────────────────────────────────────────────────────────
+// Stage icon helper — now delegates to the shared lib
 function getStageIcon(stage: string): string {
-  const map: Record<string, string> = {
-    "Baby":       "baby_changing_station",
-    "Toddler":    "child_care",
-    "Pre-School": "toys",
-    "School":     "school",
-    "Exam-Prep":  "menu_book",
-    "University": "account_balance",
-    "Adult":      "trending_up",
-    "Elder":      "elderly",
-  };
-  return map[stage] ?? "person";
+  return getStageMeta(stage).icon;
 }
 
 const PRIMARY   = "#6D28D9";

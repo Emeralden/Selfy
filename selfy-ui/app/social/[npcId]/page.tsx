@@ -16,12 +16,14 @@ type NPC = {
   id: string;
   first_name: string;
   last_name: string;
+  age: number;
   gender: Gender;
   role: string;
   affection: number;
   trust: number;
   respect: number;
   relation_label: string;
+  avatar_url?: string | null;
 };
 
 type Stat = {
@@ -47,6 +49,20 @@ function genderDark(gender: Gender): string {
 
 function clampStat(value: number): number {
   return Math.max(0, Math.min(100, value ?? 0));
+}
+
+function relationTone(label: string) {
+  const key = label.trim().toLowerCase();
+  if (key === "attached")    return { color: "#047857", bg: "#ECFDF5", dot: "#10B981", border: "rgba(4,120,87,0.20)" };
+  if (key === "close")       return { color: "#0F766E", bg: "#F0FDFA", dot: "#14B8A6", border: "rgba(15,118,110,0.20)" };
+  if (key === "warm")        return { color: "#B45309", bg: "#FFFBEB", dot: "#F59E0B", border: "rgba(180,83,9,0.20)" };
+  if (key === "formal")      return { color: "#0369A1", bg: "#F0F9FF", dot: "#38BDF8", border: "rgba(3,105,161,0.20)" };
+  if (key === "complicated") return { color: "#C2410C", bg: "#FFF7ED", dot: "#F97316", border: "rgba(194,65,12,0.20)" };
+  if (key === "strained")    return { color: "#D97706", bg: "#FFFBEB", dot: "#FBBF24", border: "rgba(217,119,6,0.20)" };
+  if (key === "tense")       return { color: "#DC2626", bg: "#FEF2F2", dot: "#F87171", border: "rgba(220,38,38,0.20)" };
+  if (key === "fractured")   return { color: "#B91C1C", bg: "#FEF2F2", dot: "#EF4444", border: "rgba(185,28,28,0.22)" };
+  if (key === "distant")     return { color: "#64748B", bg: "#F8FAFC", dot: "#94A3B8", border: "rgba(100,116,139,0.20)" };
+  return                            { color: "#64748B", bg: "#F8FAFC", dot: "#94A3B8", border: "rgba(100,116,139,0.20)" };
 }
 
 export default function NpcPage() {
@@ -143,12 +159,20 @@ export default function NpcPage() {
           <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-xs">
             <div className="flex items-center gap-4">
               <div
-                className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[20px]"
-                style={{ background: genderTint(npc.gender) }}
+                className="flex h-[84px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-[20px]"
+                style={{ background: genderTint(npc.gender), border: `1.5px solid ${accent}20` }}
               >
-                <span className="material-symbols-outlined text-[38px]" style={{ color: accent }}>
-                  person
-                </span>
+                {npc.avatar_url ? (
+                  <img
+                    src={npc.avatar_url}
+                    alt={`${npc.first_name} avatar`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-[38px]" style={{ color: accent }}>
+                    person
+                  </span>
+                )}
               </div>
 
               <div className="min-w-0 flex-1">
@@ -158,12 +182,21 @@ export default function NpcPage() {
                 >
                   {getFullName(npc)}
                 </h2>
-                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#FFF9ED] px-2.5 py-1 border border-[#FFE7B8]/50">
-                  <div className="h-1.5 w-1.5 rounded-full bg-[#D97706]" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#B45309]">
-                    {npc.relation_label || "Neutral"}
-                  </span>
-                </div>
+                <p className="mt-0.5 text-[11px] font-semibold text-slate-400">Age {npc.age}</p>
+                {(() => {
+                  const rt = relationTone(npc.relation_label || "Neutral");
+                  return (
+                    <div
+                      className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
+                      style={{ background: rt.bg, border: `1px solid ${rt.border}` }}
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full" style={{ background: rt.dot }} />
+                      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: rt.color }}>
+                        {npc.relation_label || "Neutral"}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

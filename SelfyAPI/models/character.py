@@ -8,6 +8,7 @@ from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 if TYPE_CHECKING:
     from .finances import Asset, Debt, Investment
     from .npc import NPC
+    from .event import LifeEvent
 
 
 class Sexuality(str, Enum):
@@ -112,6 +113,10 @@ class Character(SQLModel, table=True):
 
     npcs: list["NPC"] = Relationship(
         back_populates="character",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+    events: list["LifeEvent"] = Relationship(
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 

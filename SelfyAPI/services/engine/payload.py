@@ -41,7 +41,7 @@ def npc_state(npc: NPC) -> dict:
         "respect":        npc.respect,
         "resentment":     npc.resentment,
         "is_significant": npc.is_significant,
-        "role":           npc.role or "",
+        "role":           npc.role.value if npc.role else "",
     }
 
 

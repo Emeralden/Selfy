@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import Header from "../components/Header";
 import { useCharacterStore } from "../store/useCharacterStore";
 import { apiClient } from "@/lib/apiClient";
+import { relationTone, type ChipTone } from "@/lib/relationTone";
 
 type Gender = "Male" | "Female" | string;
 
@@ -17,6 +18,7 @@ type NPC = {
   role: string;
   relation_label: string;
   is_significant: boolean;
+  avatar_url?: string | null;
 };
 
 type SectionTone = {
@@ -27,11 +29,6 @@ type SectionTone = {
   glow: string;
 };
 
-type ChipTone = {
-  color: string;
-  bg: string;
-  border: string;
-};
 
 const SECTION_TONES: Record<string, SectionTone> = {
   intimacy: {
@@ -96,47 +93,7 @@ function genderTint(gender: Gender): string {
   return gender === "Female" ? "rgba(255,0,127,0.10)" : "rgba(29,78,216,0.10)";
 }
 
-function relationTone(label: string): ChipTone {
-  const key = label.trim().toLowerCase();
 
-  if (key === "attached") {
-    return { color: "#047857", bg: "#ECFDF5", border: "rgba(4,120,87,0.16)" };
-  }
-
-  if (key === "close") {
-    return { color: "#0F766E", bg: "#F0FDFA", border: "rgba(15,118,110,0.16)" };
-  }
-
-  if (key === "warm") {
-    return { color: "#B45309", bg: "#FFFBEB", border: "rgba(180,83,9,0.16)" };
-  }
-
-  if (key === "formal") {
-    return { color: "#0369A1", bg: "#F0F9FF", border: "rgba(3,105,161,0.16)" };
-  }
-
-  if (key === "complicated") {
-    return { color: "#C2410C", bg: "#FFF7ED", border: "rgba(194,65,12,0.16)" };
-  }
-
-  if (key === "strained") {
-    return { color: "#D97706", bg: "#FFFBEB", border: "rgba(217,119,6,0.16)" };
-  }
-
-  if (key === "tense") {
-    return { color: "#DC2626", bg: "#FEF2F2", border: "rgba(220,38,38,0.16)" };
-  }
-
-  if (key === "fractured") {
-    return { color: "#B91C1C", bg: "#FEF2F2", border: "rgba(185,28,28,0.18)" };
-  }
-
-  if (key === "distant") {
-    return { color: "#64748B", bg: "#F8FAFC", border: "rgba(100,116,139,0.16)" };
-  }
-
-  return { color: "#64748B", bg: "#F8FAFC", border: "rgba(100,116,139,0.16)" };
-}
 
 function getFullName(npc: NPC): string {
   return `${npc.first_name} ${npc.last_name}`.trim();
@@ -155,16 +112,24 @@ function SocialCard({ npc, tone }: { npc: NPC; tone: SectionTone }) {
       }}
     >
       <div
-        className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-inner"
+        className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl shadow-inner"
         style={{
           background: `linear-gradient(180deg, rgba(255,255,255,0.98) 0%, ${genderTint(npc.gender)} 100%)`,
           border: `1.5px solid ${accent}20`,
           boxShadow: `inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 16px -10px ${accent}`,
         }}
       >
-        <span className="material-symbols-outlined text-[32px]" style={{ color: accent }}>
-          account_circle
-        </span>
+        {npc.avatar_url ? (
+          <img
+            src={npc.avatar_url}
+            alt={`${npc.first_name} avatar`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="material-symbols-outlined text-[32px]" style={{ color: accent }}>
+            account_circle
+          </span>
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
@@ -257,13 +222,16 @@ function SocialSection({
 }
 
 export default function SocialPage() {
-  const charId = useCharacterStore((s) => s.charId) ?? "";
+  const rawCharId = useCharacterStore((s) => s.charId);
+  const charId = rawCharId ?? "";
 
-  const { data: npcs = [], isLoading } = useQuery<NPC[]>({
+  const { data: npcs = [], isLoading: npcsQueryLoading } = useQuery<NPC[]>({
     queryKey: ["npcs", charId],
     queryFn: async () => (await apiClient.get(`/character/${charId}/npcs`)).data,
-    enabled: !!charId,
+    enabled: !!rawCharId,
   });
+
+  const isLoading = !rawCharId || npcsQueryLoading;
 
   const { intimacy, family, friends, extended } = useMemo(() => {
     const significant = npcs.filter((npc) => npc.is_significant);

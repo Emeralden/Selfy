@@ -1,95 +1,34 @@
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from SelfyAPI.routers.actions import make_action_router
+from SelfyAPI.routers.utils import get_char_or_404
+from SelfyAPI.services.qualification import tier_to_college, rank_to_tier, compute_rank
 
-from SelfyAPI.dependencies import RedisDep, SessionDep
-from SelfyAPI.models.character import Character
-from SelfyAPI.models.event import LifeEvent
-from SelfyAPI.services.director import embed_and_save
-from SelfyAPI.services.engine import client as engine
-from SelfyAPI.services.engine.payload import char_state, apply_stat_changes
-from SelfyAPI.services.rate_limiter import within_limit
-from SelfyAPI.services.scenarios import enrich_event
-
-router = APIRouter(prefix="/university")
+router = make_action_router("university", "university")
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+@router.get("/{char_id}/standing")
+def get_standing(char_id: uuid.UUID, session):
+    """Return CGPA + college standing — replaces frontend getCGPA()."""
+    from SelfyAPI.dependencies import SessionDep  # noqa: avoid circular
+    char = get_char_or_404(session, char_id)
+    grades = char.grades or 50
 
-@router.get("/{char_id}/actions")
-async def get_actions(char_id: uuid.UUID, session: SessionDep):
-    char = session.get(Character, char_id)
-    if not char:
-        raise HTTPException(status_code=404, detail="Character not found.")
-    return await engine.resolve("action.available", {
-        "phase": "university",
-        "age":   char.age,
-        "tags":  list(char.tags or []),
-    })
+    # `level` uses the canonical vocabulary from lib/levelColors.ts
+    if grades >= 90:   cgpa, label, level = "9.5+",     "Topper 🏆",       "elite"
+    elif grades >= 80: cgpa, label, level = "8.5–9.4",  "Distinction ✅",  "strong"
+    elif grades >= 65: cgpa, label, level = "7.5–8.4",  "First Class 📘",  "good"
+    elif grades >= 50: cgpa, label, level = "6.5–7.4",  "Pass Class 📋",   "average"
+    elif grades >= 35: cgpa, label, level = "5.0–6.4",  "Borderline ⚠️", "below"
+    else:              cgpa, label, level = "< 5.0",    "Detained 💀",     "critical"
 
-
-@router.get("/{char_id}/action")
-async def do_action(
-    char_id: uuid.UUID,
-    action_name: str,
-    session: SessionDep,
-    redis: RedisDep,
-    bg_tasks: BackgroundTasks,
-    outcome: str | None = None,
-):
-    char = session.get(Character, char_id)
-    if not char:
-        raise HTTPException(status_code=404, detail="Character not found.")
-
-    # 1. Validate action is available for this age/tags
-    available = await engine.resolve("action.available", {
-        "phase": "university",
-        "age":   char.age,
-        "tags":  list(char.tags or []),
-    })
-    action_meta = next((a for a in available if a["id"] == action_name), None)
-    if not action_meta:
-        raise HTTPException(status_code=403, detail="Action not available.")
-
-    # 2. Rate-limit (API concern)
-    stats_apply = await within_limit(redis, char_id, char.age, action_name, action_meta["yearly_limit"])
-
-    # 3. Resolve in engine
-    result = await engine.resolve("action.resolve", {
-        "phase":          "university",
-        "action_id":      action_name,
-        "outcome_choice": outcome,
-        "state":          char_state(char),
-    })
-
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-
-    # 4. Apply stat changes + tags (only if within rate limit)
-    if stats_apply:
-        apply_stat_changes(char, result.get("stat_changes", {}))
-        for tag in result.get("tags_granted", []):
-            if tag not in (char.tags or []):
-                char.tags = list(char.tags or []) + [tag]
-
-    # 5. LLM enrichment
-    event = {
-        "id":        action_name,
-        "version":   "1.0",
-        "text_base": result.get("text", ""),
-        "title":     result.get("title", ""),
-    }
-    await enrich_event(event, result.get("tone", "neutral"), redis, bg_tasks)
-
-    # 6. Log + persist
-    log_entry = LifeEvent(char_id=char_id, age=char.age, text=result.get("text", ""))
-    session.add(log_entry)
-    session.add(char)
-    session.commit()
-    session.refresh(log_entry)
-    bg_tasks.add_task(embed_and_save, log_entry.id)
+    rank  = compute_rank(grades, char.discipline or 50)
+    tier  = rank_to_tier(rank, char.karma or 50)
 
     return {
-        "title": event["title"],
-        "body":  event["text_base"],
+        "cgpa":    cgpa,
+        "label":   label,
+        "level":   level,
+        "college": tier_to_college(tier),
+        "tier":    tier,
     }

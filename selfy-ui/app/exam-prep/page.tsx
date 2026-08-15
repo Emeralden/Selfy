@@ -6,35 +6,26 @@ import ChoicePicker from "../components/ChoicePicker";
 import { useCharacterStore } from "../store/useCharacterStore";
 import { useActionHandler, type PhaseAction } from "@/lib/useActionHandler";
 import { apiClient } from "@/lib/apiClient";
-
-// ── Theme map ─────────────────────────────────────────────────────────────────
 import { THEME_MAP, DEFAULT_THEME } from "@/lib/themeMap";
-
-
-// ── AIR derivation from grades + mind + discipline ────────────────────────────
-function getAIR(grades: number, mind: number, discipline: number): {
-  air: string; label: string; color: string; stress: number;
-} {
-  const score = grades * 0.5 + mind * 0.3 + discipline * 0.2;
-  if (score >= 88) return { air: "< 1,000",   label: "IIT Possible 🔥", color: "#10B981", stress: 20 };
-  if (score >= 78) return { air: "< 5,000",   label: "NIT Likely ✅",   color: "#F59E0B", stress: 40 };
-  if (score >= 65) return { air: "< 20,000",  label: "State CET 📋",    color: "#F97316", stress: 60 };
-  if (score >= 50) return { air: "< 60,000",  label: "Private College", color: "#EF4444", stress: 75 };
-  if (score >= 35) return { air: "< 1,50,000",label: "Drop Year? 😬",   color: "#DC2626", stress: 90 };
-  return             { air: "Undetermined", label: "Need Help 🆘",    color: "#991B1B", stress: 100 };
-}
-
-
+import { TAGS } from "@/lib/tags";
+import { levelColor } from "@/lib/levelColors";
 
 export default function ExamPrepPage() {
   const charId      = useCharacterStore((s) => s.charId) ?? "";
   const queryClient = useQueryClient();
 
   // ── Character ──────────────────────────────────────────────────────────────
-  const { data: character } = useQuery({
+  const { data: character, isLoading } = useQuery({
     queryKey: ["character", charId],
     queryFn: async () => (await apiClient.get(`/character/${charId}`)).data,
     enabled: !!charId,
+  });
+
+  // ── Rank data (computed server-side) ─────────────────────────────────────
+  const { data: rankData } = useQuery({
+    queryKey: ["exam-rank", charId, character?.grades, character?.discipline],
+    queryFn: async () => (await apiClient.get(`/exam-prep/${charId}/rank`)).data,
+    enabled: !!charId && character?.grades != null,
   });
 
   // ── Age-specific actions ────────────────────────────────────────────────────
@@ -63,12 +54,19 @@ export default function ExamPrepPage() {
     },
   });
 
-  const grades     = character?.grades     ?? 50;
-  const mind       = character?.mind       ?? 50;
-  const discipline = character?.discipline ?? 50;
-  const airData    = getAIR(grades, mind, discipline);
+  if (isLoading || !character) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-[#FAFBFF]">
+        <h1 className="animate-pulse text-xl font-black text-red-500">Loading...</h1>
+      </div>
+    );
+  }
 
-  const hasCoaching = character?.tags?.includes("Coaching");
+  // Fallback: if rankData not yet loaded, show neutral state
+  const airData = rankData ?? { air: "...", label: "Calculating...", level: "" as string, stress: 0 };
+  const airColor = levelColor(airData.level);
+
+  const hasCoaching = character.tags?.includes(TAGS.COACHING);
 
   return (
     <>
@@ -149,7 +147,7 @@ export default function ExamPrepPage() {
                 >
                   <span
                     className="inline-block h-2 w-2 rounded-full"
-                    style={{ background: airData.color, boxShadow: `0 0 8px ${airData.color}` }}
+                    style={{ background: airColor, boxShadow: `0 0 8px ${airColor}` }}
                   />
                   <span className="text-[11px] font-black tracking-wide text-white/80">{airData.label}</span>
                 </div>
@@ -160,14 +158,14 @@ export default function ExamPrepPage() {
                 className="flex min-w-20 flex-col items-center justify-center rounded-2xl px-3 py-3"
                 style={{
                   background: "rgba(0,0,0,0.35)",
-                  border: `1.5px solid ${airData.color}55`,
-                  boxShadow: `0 0 24px -6px ${airData.color}66`,
+                  border: `1.5px solid ${airColor}55`,
+                  boxShadow: `0 0 24px -6px ${airColor}66`,
                   backdropFilter: "blur(8px)",
                 }}
               >
                 <span
                   className="text-[11px] font-black leading-none tracking-widest uppercase"
-                  style={{ color: airData.color }}
+                  style={{ color: airColor }}
                 >
                   AIR
                 </span>
@@ -176,7 +174,7 @@ export default function ExamPrepPage() {
                   style={{
                     fontSize: airData.air.length > 7 ? "0.85rem" : "1.1rem",
                     color: "#fff",
-                    textShadow: `0 0 16px ${airData.color}`,
+                    textShadow: `0 0 16px ${airColor}`,
                   }}
                 >
                   {airData.air}

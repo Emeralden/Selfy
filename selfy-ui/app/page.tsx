@@ -1,43 +1,13 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "./components/Header";
 import { useCharacterStore } from "./store/useCharacterStore";
 import { apiClient } from "@/lib/apiClient";
 import { usePopupStore } from "./store/usePopupStore";
-
-
-const STAGE_META: Record<string, { label: string; icon: string }> = {
-  "Baby":        { label: "Baby",       icon: "baby_changing_station" },
-  "Toddler":     { label: "Toddler",    icon: "child_care" },
-  "Pre-School":  { label: "Pre-School", icon: "toys" },
-  "School":      { label: "School",     icon: "school" },
-  "Exam-Prep":   { label: "Exam Prep",  icon: "menu_book" },
-  "University":  { label: "University", icon: "account_balance" },
-  "Adult":       { label: "Path",       icon: "trending_up" },
-  "Elder":       { label: "Path",       icon: "trending_up" },
-};
-
-const STAGE_ROUTES: Record<string, string> = {
-  "Pre-School": "/pre-school",
-  "School":     "/school",
-  "Exam-Prep":  "/exam-prep",
-  "University": "/university",
-};
-
-function getPathStage(stage: string, age?: number): { label: string; icon: string } {
-  if (stage === "School" && age != null) {
-    if (age <= 9)  return { label: "Junior School",     icon: "cottage" };
-    if (age <= 12) return { label: "Middle School", icon: "school" };
-    return               { label: "Senior School",  icon: "domain" };
-  }
-  return STAGE_META[stage] ?? { label: "Path", icon: "trending_up" };
-}
-
-function getStageRoute(stage: string): string {
-  return STAGE_ROUTES[stage] ?? "#";
-}
+import { getStageMeta, getStageRoute, getSchoolStageLabel } from "@/lib/stageMeta";
 
 type LifeEvent = {
   id: string;
@@ -49,8 +19,15 @@ export default function Page() {
   const queryClient   = useQueryClient();
   const charId        = useCharacterStore((s) => s.charId);
 
+  const router        = useRouter();
   const justBorn      = useCharacterStore((s) => s.justBorn);
   const clearJustBorn = useCharacterStore((s) => s.clearJustBorn);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  useEffect(() => {
+    // history.length is 1 when there's no prior page in the stack
+    setCanGoBack(window.history.length > 1);
+  }, []);
 
   useEffect(() => {
     if (justBorn) {
@@ -91,21 +68,40 @@ export default function Page() {
   const getEventsForAge = (age: number) =>
     events.filter((event) => event.age === age);
 
+  const [agingOverlay, setAgingOverlay] = useState(false);
+
   const ageUpMutation = useMutation({
     mutationFn: async () => {
       if (!character) throw new Error("Character has not loaded yet.");
       const res = await apiClient.patch(`/life/${character.id}/age_up`);
       return res.data;
     },
+    onMutate: () => setAgingOverlay(true),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['character', CHAR_ID] });
+      // Write to cache instantly — no refetch wait.
+      if (data.character) {
+        queryClient.setQueryData(['character', CHAR_ID], data.character);
+      }
+      if (data.new_events?.length) {
+        queryClient.setQueryData(
+          ['events', CHAR_ID],
+          (old: LifeEvent[] = []) => [...data.new_events, ...old]
+        );
+      }
+      // Background sync for full consistency.
       queryClient.invalidateQueries({ queryKey: ['events', CHAR_ID] });
-      
-      if (data.scenarios && data.scenarios.length > 0) {
-         usePopupStore.getState().enqueueScenarios(data.scenarios);
+
+      // Close overlay — data is already visible.
+      setAgingOverlay(false);
+
+      if (data.scenarios?.length > 0) {
+        usePopupStore.getState().enqueueScenarios(data.scenarios);
       }
     },
+    onError: () => setAgingOverlay(false),
   });
+
+  const isAgingUp = agingOverlay;
 
   const handleAgeUp = () => {
     ageUpMutation.mutate();
@@ -123,6 +119,22 @@ export default function Page() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <Header/>
+
+      {/* ── Aging overlay — matches popup blur exactly ──────────────────── */}
+      {isAgingUp && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center age-up-overlay"
+          style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+        >
+          <div className="absolute inset-0 bg-slate-950/30 vignette-overlay" />
+          <div className="relative">
+            <svg className="h-12 w-12 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+              <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-6">
         <div className="flex items-center gap-3">
@@ -189,8 +201,22 @@ export default function Page() {
         })}
       </main>
 
-      <div className="w-full shrink-0 border-t border-outline-variant bg-white px-6 pb-6 pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.05)]">
+      <div className="relative w-full shrink-0 border-t border-outline-variant bg-white px-6 pb-6 pt-4 shadow-[0_-12px_40px_rgba(0,0,0,0.05)]">
         <div className="mx-auto max-w-2xl">
+
+          {/* Back button — absolute above panel top-right, zero layout impact */}
+          {canGoBack && (
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="absolute -top-7 right-0 flex items-center gap-1 rounded-tl-xl border border-b-0 border-r-0 border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-400 transition-all hover:text-slate-600 active:scale-95"
+              aria-label="Go back"
+            >
+              <span className="material-symbols-outlined text-[13px]">arrow_back</span>
+              Back
+            </button>
+          )}
+
           <div className="mb-3 grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-2.5 py-2 shadow-sm">
               <div className="shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-joy/15">
@@ -338,14 +364,28 @@ export default function Page() {
               <button
                 type="button"
                 onClick={handleAgeUp}
-                className="group flex h-28 w-full flex-col items-center justify-center gap-1 rounded-4xl bg-linear-to-b from-[#8B5CF6] to-primary px-4 text-white shadow-md transition-all duration-300 active:scale-[0.98]"
+                disabled={isAgingUp}
+                className="group flex h-28 w-full flex-col items-center justify-center gap-1 rounded-4xl bg-linear-to-b from-[#8B5CF6] to-primary px-4 text-white shadow-md transition-all duration-300 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span className="text-xl font-black tracking-tight text-white">
-                  {`Year ${character.age + 1}`}
-                </span>
-                <span className="material-symbols-outlined text-2xl font-bold text-white transition-transform group-hover:translate-x-1">
-                  arrow_forward
-                </span>
+                {isAgingUp ? (
+                  <>
+                    <span className="text-xl font-black tracking-tight text-white/80">
+                      {`Year ${character.age + 1}`}
+                    </span>
+                    <span className="material-symbols-outlined text-2xl animate-spin text-white/80">
+                      progress_activity
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xl font-black tracking-tight text-white">
+                      {`Year ${character.age + 1}`}
+                    </span>
+                    <span className="material-symbols-outlined text-2xl font-bold text-white transition-transform group-hover:translate-x-1">
+                      arrow_forward
+                    </span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -359,10 +399,10 @@ export default function Page() {
                     className={`group flex-1 w-full flex flex-col items-center justify-center rounded-2xl border border-savvy/10 bg-linear-to-b from-savvy/5 to-white py-2 shadow-lg shadow-savvy/5 transition-all${hasRoute ? " active:scale-95" : " cursor-default"}`}
                   >
                     <div className="flex h-8 w-8 items-center justify-center">
-                      <span className="material-symbols-outlined text-xl text-savvy">{getPathStage(character?.stage ?? "", character?.age).icon}</span>
+                      <span className="material-symbols-outlined text-xl text-savvy">{getSchoolStageLabel(character?.stage ?? "", character?.age, character?.tags).icon}</span>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
-                      {getPathStage(character?.stage ?? "", character?.age).label.split(" ").map((word, i) => (
+                      {getSchoolStageLabel(character?.stage ?? "", character?.age, character?.tags).label.split(" ").map((word, i) => (
                         <span key={i} className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant leading-none">
                           {word}
                         </span>

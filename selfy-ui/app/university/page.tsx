@@ -7,29 +7,9 @@ import { useCharacterStore } from "../store/useCharacterStore";
 import { useActionHandler, type PhaseAction } from "@/lib/useActionHandler";
 import { apiClient } from "@/lib/apiClient";
 import { THEME_MAP, DEFAULT_THEME } from "@/lib/themeMap";
+import { levelColor } from "@/lib/levelColors";
 
-// ── College info (hardcoded for now) ─────────────────────────────────────────
-const COLLEGE = {
-  name: "IIT Bombay",
-  branch: "Computer Science & Engineering",
-  acronym: "IIT",
-  glow: "rgba(109,40,217,0.55)",
-  bg: "linear-gradient(135deg, #1e0a38 0%, #2D1462 40%, #4C1D95 100%)",
-  blobA: "radial-gradient(circle, rgba(167,139,250,0.35), transparent 70%)",
-  blobB: "radial-gradient(circle, rgba(124,58,237,0.25), transparent 70%)",
-};
-
-// ── CGPA derivation from grades ───────────────────────────────────────────────
-function getCGPA(grades: number): { cgpa: string; label: string; color: string } {
-  if (grades >= 90) return { cgpa: "9.5+",     label: "Topper 🏆",        color: "#10B981" };
-  if (grades >= 80) return { cgpa: "8.5–9.4",  label: "Distinction ✅",  color: "#F59E0B" };
-  if (grades >= 65) return { cgpa: "7.5–8.4",  label: "First Class 📘",  color: "#3B82F6" };
-  if (grades >= 50) return { cgpa: "6.5–7.4",  label: "Pass Class 📋",   color: "#F97316" };
-  if (grades >= 35) return { cgpa: "5.0–6.4",  label: "Borderline ⚠️",  color: "#EF4444" };
-  return               { cgpa: "< 5.0",      label: "Detained 💀",      color: "#991B1B" };
-}
-
-// ── Attendance derivation from discipline ─────────────────────────────────────
+// ── Attendance derivation from discipline (pure display math) ───────────────
 function getAttendance(discipline: number): { pct: number; label: string; color: string } {
   const pct = Math.round(40 + discipline * 0.6); // maps 0–100 → 40–100%
   if (pct >= 85) return { pct, label: "Regular ✅",        color: "#10B981" };
@@ -49,6 +29,13 @@ export default function UniversityPage() {
     enabled: !!charId,
   });
 
+  // ── Standing (CGPA + college tier) from server ─────────────────────────────
+  const { data: standing } = useQuery({
+    queryKey: ["university-standing", charId, character?.grades],
+    queryFn: async () => (await apiClient.get(`/university/${charId}/standing`)).data,
+    enabled: !!charId && character?.grades != null,
+  });
+
   // ── Age-specific actions ──────────────────────────────────────────────────
   const { data: uniActions = [] } = useQuery<PhaseAction[]>({
     queryKey: ["university-actions", charId, character?.age],
@@ -63,7 +50,7 @@ export default function UniversityPage() {
       phase:           "university",
       charId,
       popupIcon:       "account_balance",
-      extraInvalidate: [["university-actions", charId]],
+      extraInvalidate: [["university-actions", charId], ["university-standing", charId]],
     });
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -75,8 +62,11 @@ export default function UniversityPage() {
     );
   }
 
-  // ── Derived stats ─────────────────────────────────────────────────────────
-  const cgpaData = getCGPA(character.grades ?? 50);
+  // ── Derived stats ────────────────────────────────────────────────────────────
+  // Use server CGPA data if loaded, fallback for graceful loading state
+  const cgpaData   = standing ?? { cgpa: "...", label: "Loading...", level: "" as string };
+  const cgpaColor  = levelColor(standing?.level);
+  const college    = standing?.college;
   const attData  = getAttendance(character.discipline ?? 50);
 
   return (
@@ -122,16 +112,16 @@ export default function UniversityPage() {
           {/* ── Hero Card — College Identity ── */}
           <div
             className="relative overflow-hidden rounded-3xl p-5"
-            style={{ background: COLLEGE.bg, boxShadow: `0 8px 32px -8px ${COLLEGE.glow}, 0 2px 8px rgba(0,0,0,0.3)` }}
+            style={{ background: college?.bg ?? "linear-gradient(135deg, #1e0a38 0%, #2D1462 40%, #4C1D95 100%)", boxShadow: `0 8px 32px -8px ${college?.glow ?? "rgba(109,40,217,0.55)"}, 0 2px 8px rgba(0,0,0,0.3)` }}
           >
             {/* decorative blobs */}
             <div
               className="pointer-events-none absolute -top-10 -right-10 h-44 w-44 rounded-full opacity-60"
-              style={{ background: COLLEGE.blobA }}
+              style={{ background: college?.blobA ?? "radial-gradient(circle, rgba(167,139,250,0.35), transparent 70%)" }}
             />
             <div
               className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full opacity-50"
-              style={{ background: COLLEGE.blobB }}
+              style={{ background: college?.blobB ?? "radial-gradient(circle, rgba(124,58,237,0.25), transparent 70%)" }}
             />
             {/* scanline texture */}
             <div
@@ -152,7 +142,7 @@ export default function UniversityPage() {
                 >
                   <span className="material-symbols-outlined text-[14px] text-violet-300">school</span>
                   <span className="text-[11px] font-black uppercase tracking-widest text-violet-200">
-                    {COLLEGE.acronym} · Premier Institute
+                    {college?.acronym ?? "IIT"}
                   </span>
                 </div>
 
@@ -160,10 +150,10 @@ export default function UniversityPage() {
                   className="text-[22px] font-black leading-tight tracking-tight text-white"
                   style={{ textShadow: "0 2px 10px rgba(0,0,0,0.3)" }}
                 >
-                  {COLLEGE.name}
+                  {college?.name ?? "IIT Bombay"}
                 </h2>
                 <p className="mt-1 text-[12px] font-semibold text-violet-300/80">
-                  {COLLEGE.branch}
+                  {college?.branch ?? "Computer Science & Engineering"}
                 </p>
               </div>
 
@@ -194,7 +184,13 @@ export default function UniversityPage() {
                 >
                   {cgpaData.cgpa}
                 </p>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.12)" }}>
+                <span
+                  className="mt-1 inline-block text-[10px] font-black tracking-wide"
+                  style={{ color: cgpaColor || "rgba(255,255,255,0.6)" }}
+                >
+                  {cgpaData.label}
+                </span>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.12)" }}>
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${character.grades ?? 50}%`, background: "linear-gradient(to right, rgba(255,255,255,0.45), rgba(255,255,255,0.85))", boxShadow: "0 0 8px rgba(255,255,255,0.3)" }}

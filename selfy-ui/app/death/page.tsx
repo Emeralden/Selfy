@@ -11,17 +11,19 @@ export default function DeathPage() {
   const router   = useRouter();
   const charId   = useCharacterStore((s) => s.charId);
 
-  const { data: character } = useQuery<any>({
+  const { data: character, isLoading: isCharLoading } = useQuery<any>({
     queryKey: ["character", charId],
     queryFn: async () => (await apiClient.get(`/character/${charId}`)).data,
     enabled: !!charId,
   });
 
-  const { data: events = [] } = useQuery<LifeEvent[]>({
+  const { data: events = [], isLoading: isEventsLoading } = useQuery<LifeEvent[]>({
     queryKey: ["events", charId],
     queryFn: async () => (await apiClient.get(`/character/${charId}/events`)).data,
     enabled: !!charId,
   });
+
+  const isLoading = isCharLoading || isEventsLoading;
 
   // If character is somehow still alive, kick back to home
   useEffect(() => {
@@ -30,16 +32,25 @@ export default function DeathPage() {
 
 
 
+  if (isLoading || !character) {
+    return (
+      <div
+        className="flex h-dvh items-center justify-center"
+        style={{ background: "radial-gradient(ellipse at 50% 0%, #0a1628 0%, #060c14 55%, #000 100%)" }}
+      >
+        <h1 className="animate-pulse text-xl font-black text-white/40">Loading...</h1>
+      </div>
+    );
+  }
+
   // Eulogy = the longest final event text (AI-generated)
   const eulogy = [...events]
     .reverse()
     .find((e) => e.text.length > 120)?.text
     ?? "They lived. They died. The world moved on.";
 
-  const name = character
-    ? `${character.first_name} ${character.last_name}`
-    : "The Departed";
-  const age = character?.age ?? "?";
+  const name = `${character.first_name} ${character.last_name}`;
+  const age = character.age;
 
   return (
     <div className="death-scene">

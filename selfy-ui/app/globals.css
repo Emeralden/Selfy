@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@keyframes age-up-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.age-up-overlay {
+  animation: age-up-fadein 200ms ease forwards;
+}
+
 @theme {
   --color-primary: #6D28D9;
   --color-on-primary: #ffffff;

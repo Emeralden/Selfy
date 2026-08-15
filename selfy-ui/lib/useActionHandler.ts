@@ -31,6 +31,8 @@ interface UseActionHandlerOptions {
   phase: string;
   charId: string;
   extraParams?: Record<string, string>;
+  /** Override the full action URL. Defaults to `/{phase}/{charId}/action` */
+  endpoint?: string;
   /** Material Symbols icon shown in the success popup */
   popupIcon?: string;
   /** Extra invalidation query keys beyond ["character", charId] */
@@ -43,6 +45,7 @@ export function useActionHandler({
   phase,
   charId,
   extraParams = {},
+  endpoint,
   popupIcon = "auto_awesome",
   extraInvalidate = [],
   onSuccess,
@@ -57,7 +60,7 @@ export function useActionHandler({
   const mutation = useMutation<ActionResult, Error, { actionId: string; outcome?: string }>({
     mutationFn: async ({ actionId, outcome }) =>
       (
-        await apiClient.get(`/${phase}/${charId}/action`, {
+        await apiClient.get(endpoint ?? `/${phase}/${charId}/action`, {
           params: {
             action_name: actionId,
             ...extraParams,
