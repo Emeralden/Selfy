@@ -17,7 +17,5 @@ def create_db_and_tables():
     sqlmodel.SQLModel.metadata.create_all(engine)
 
 def get_session():
-    # expire_on_commit=False: attributes stay in-memory after commit.
-    # Eliminates the session.refresh() DB roundtrip in every endpoint.
     with sqlmodel.Session(engine, expire_on_commit=False) as session:
         yield session
